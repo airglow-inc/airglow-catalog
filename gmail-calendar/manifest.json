@@ -1,0 +1,21 @@
+{
+  "id": "gmail-calendar",
+  "name": "Gmail Calendar",
+  "version": "0.1.0",
+  "description": "Reads email conversations and uses AI to pre-fill Google Calendar events",
+  "defaultEnabled": false,
+  "userscripts": [
+    {
+      "file": "userscripts/gmail.ts",
+      "matches": [
+        "*://mail.google.com/*"
+      ]
+    },
+    {
+      "file": "userscripts/calendar-prefill.ts",
+      "matches": [
+        "*://calendar.google.com/*/r/create*"
+      ]
+    }
+  ]
+}

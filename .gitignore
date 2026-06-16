@@ -1,0 +1,11 @@
+node_modules/
+.output/
+.wxt/
+state/
+# bun.lock is committed (root + per-app) — it pins the exact dependency
+# versions the maintainer reviewed, and the daemon installs apps with
+# --frozen-lockfile so a tampered package.json can't silently pull new code.
+**/.env
+**/.env.local
+**/.env.*.local
+.DS_Store

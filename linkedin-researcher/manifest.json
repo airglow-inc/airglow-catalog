@@ -1,0 +1,19 @@
+{
+  "id": "linkedin-researcher",
+  "name": "LinkedIn Researcher",
+  "version": "0.1.0",
+  "description": "AI-powered research for LinkedIn profiles using web search",
+  "defaultEnabled": false,
+  "userscripts": [
+    {
+      "file": "userscripts/linkedin.ts",
+      "matches": [
+        "*://www.linkedin.com/*"
+      ],
+      "runAt": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "*://www.linkedin.com/*"
+  ]
+}

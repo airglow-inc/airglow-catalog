@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "apps": [
+    {
+      "id": "askme-anything",
+      "name": "Ask Me Anything",
+      "version": "0.1.0",
+      "description": "Highlight text, press Cmd+J, get AI-powered explanations with web search"
+    },
+    {
+      "id": "focus-hider",
+      "name": "Focus Hider",
+      "version": "0.3.2",
+      "description": "Hides distracting content, enforces time-based access, and messaging focus mode"
+    },
+    {
+      "id": "gmail-calendar",
+      "name": "Gmail Calendar",
+      "version": "0.1.0",
+      "description": "Reads email conversations and uses AI to pre-fill Google Calendar events"
+    },
+    {
+      "id": "howto-helper",
+      "name": "How-To Helper",
+      "version": "0.1.0",
+      "description": "Floating How-To chat that explains how to do things on the current page"
+    },
+    {
+      "id": "linkedin-researcher",
+      "name": "LinkedIn Researcher",
+      "version": "0.1.0",
+      "description": "AI-powered research for LinkedIn profiles using web search"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Refuses a commit if any catalog app fails validation (manifest sanity, deps
+# install, UI + userscripts bundle clean). Enabled via `git config core.hooksPath
+# hooks` — set automatically by the package.json "prepare" script on install.
+if ! command -v bun >/dev/null 2>&1; then
+  echo "pre-commit: bun not found on PATH — skipping catalog validation." >&2
+  exit 0
+fi
+exec bun scripts/validate.mjs

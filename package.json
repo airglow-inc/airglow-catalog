@@ -1,0 +1,26 @@
+{
+  "name": "airglow-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Official Airglow app catalog. Each top-level directory with a manifest.json is an installable app.",
+  "scripts": {
+    "build-index": "node scripts/build-catalog.mjs",
+    "sync-sdk": "node scripts/sync-sdk.mjs",
+    "validate": "bun scripts/validate.mjs",
+    "prepare": "git config core.hooksPath hooks || true"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/cli": "^4.0.0",
+    "lucide-react": "^0.460.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.3"
+  },
+  "trustedDependencies": ["@tailwindcss/oxide"]
+}
