@@ -1,0 +1,13 @@
+{
+  "id": "cinematic-x",
+  "name": "Cinematic View for X",
+  "version": "0.1.0",
+  "description": "Adds a Cinematic View toggle to X (Twitter). Blacks out the left and right side panels and hides the For you / Following / composer header, leaving only the centered timeline of posts. Smoothly animated.",
+  "userscripts": [
+    {
+      "file": "userscripts/cinematic.ts",
+      "matches": ["*://x.com/*", "*://twitter.com/*"]
+    }
+  ],
+  "entrypoint": { "selector": "#airglow-cine-btn" }
+}
