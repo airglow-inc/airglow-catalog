@@ -13,11 +13,17 @@ for (const name of readdirSync(root, { withFileTypes: true })) {
   if (!existsSync(manifestPath)) continue;
   const m = JSON.parse(readFileSync(manifestPath, 'utf8'));
   if (m.visibility === 'hidden') continue;
+  // Union of every userscript's match patterns — the catalog card renders the
+  // same site list as the installed gallery from these.
+  const matches = [...new Set(
+    (m.userscripts ?? []).flatMap((u) => (Array.isArray(u.matches) ? u.matches : [])),
+  )];
   apps.push({
     id: m.id ?? name.name,
     name: m.name ?? name.name,
     version: m.version ?? '0.0.0',
     description: m.description ?? '',
+    matches,
   });
 }
 
