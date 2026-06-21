@@ -64,7 +64,7 @@ html:not([dark]) #${BTN_ID}:hover { background: rgba(0,0,0,0.1); }
 }
 
 #${CTRL_ID} {
-  position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%);
   z-index: 61; display: flex; align-items: center; gap: 12px;
   padding: 8px 10px 8px 14px; border-radius: 10px;
   background: rgba(18,18,20,.94); color: #f1f1f1;
