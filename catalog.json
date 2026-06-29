@@ -21,6 +21,16 @@
       ]
     },
     {
+      "id": "customizable-x",
+      "name": "Customizable X",
+      "version": "0.1.0",
+      "description": "Rearrange X (Twitter) like iPhone apps. Enter Arrange mode and drag the left nav and right sidebar into new positions — they snap to place and stay put across reloads.",
+      "matches": [
+        "*://x.com/*",
+        "*://twitter.com/*"
+      ]
+    },
+    {
       "id": "focus-hider",
       "name": "Focus Hider",
       "version": "0.3.2",

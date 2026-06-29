@@ -1,0 +1,13 @@
+{
+  "id": "customizable-x",
+  "name": "Customizable X",
+  "version": "0.1.0",
+  "description": "Rearrange X (Twitter) like iPhone apps. Enter Arrange mode and drag the left nav and right sidebar into new positions — they snap to place and stay put across reloads.",
+  "userscripts": [
+    {
+      "file": "userscripts/x.ts",
+      "matches": ["*://x.com/*", "*://twitter.com/*"]
+    }
+  ],
+  "entrypoint": { "selector": "#airglow-customizex-btn" }
+}
