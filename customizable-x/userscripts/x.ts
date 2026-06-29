@@ -117,11 +117,13 @@ function liveSlot(blockId: string): string {
   return committed;
 }
 
-// Horizontal shift from a block's home position to its live slot.
-function targetTranslateX(b: Block): number {
+// Horizontal shift from a block's home position to its live slot. Returns null
+// when the timeline geometry isn't available (e.g. mid SPA-navigation) so the
+// caller can keep the rail where it is instead of snapping it to default.
+function targetTranslateX(b: Block): number | null {
   const to = slotTargetLeft(liveSlot(b.id), b.width);
   const home = slotTargetLeft(b.defaultSlot, b.width);
-  return to !== null && home !== null ? to - home : 0;
+  return to !== null && home !== null ? to - home : null;
 }
 
 // The block's live content box — where its dotted border goes and where drags
@@ -208,7 +210,7 @@ function ensureBorders() {
   for (const b of BLOCKS) {
     const rect = contentRect(b);
     let ov = borders.get(b.id);
-    if (!rect) { if (ov) { ov.remove(); borders.delete(b.id); } continue; }
+    if (!rect) continue; // geometry not ready — keep the existing border put
     if (!ov || !ov.isConnected) {
       ov = document.createElement('div');
       ov.className = BORDER_CLASS;
@@ -238,12 +240,16 @@ function applyLayout() {
       setStyle(el, 'zIndex', '');
       continue;
     }
+    const base = targetTranslateX(b);
+    if (base === null) continue; // geometry not ready (mid-navigation) — keep the rail put, don't snap to default
     const isDragged = drag?.blockId === b.id;
-    let tx = targetTranslateX(b);
+    let tx = base;
     let ty = 0;
     if (isDragged && drag) { tx += drag.dx; ty += drag.dy; }
     setStyle(el, 'transform', tx || ty ? `translate(${tx}px, ${ty}px)` : '');
-    setStyle(el, 'transition', isDragged ? 'none' : 'transform .18s ease');
+    // Animate only while actively arranging (drag/reflow). In the persisted state
+    // re-assertions are instant, so a mid-navigation recompute can't slide the rail.
+    setStyle(el, 'transition', arranging && !isDragged ? 'transform .18s ease' : 'none');
     setStyle(el, 'zIndex', isDragged ? '2147483641' : '2147483640');
   }
   ensureBorders();
