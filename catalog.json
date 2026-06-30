@@ -24,7 +24,7 @@
       "id": "customizable-x",
       "name": "Customizable X",
       "version": "0.1.0",
-      "description": "Rearrange X (Twitter) like iPhone apps. Enter Arrange mode and drag the left nav and right sidebar into new positions — they snap to place and stay put across reloads.",
+      "description": "Reorder X (Twitter) like iPhone apps. Enter Arrange mode and drag the left menu items (Home, Explore, …) and the right sidebar sections (Search, Subscribe, What's happening, Who to follow) into the order you want — it sticks across reloads.",
       "matches": [
         "*://x.com/*",
         "*://twitter.com/*"

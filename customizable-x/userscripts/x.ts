@@ -1,165 +1,165 @@
-// Customizable X (Twitter) — rearrange the UI like iPhone apps.
+// Customizable X (Twitter) — reorder X's UI like iPhone apps.
 //
-// v1 makes two blocks movable: the left nav stripe and the right sidebar stripe.
-// An injected "Arrange" button enters an edit mode (each movable block gets a
-// dotted border); you drag a stripe onto the other slot to swap them. The chosen
-// layout persists in airglow.storage.
+// Two reorderable lists: the left nav's menu items (Home, Explore, …) and the
+// right sidebar's sections (Search, Subscribe, What's happening, Who to follow).
+// Enter "Arrange" mode, drag an item within its list to a new position; the
+// others slide to make room (live), and the order persists in airglow.storage.
 //
-// Mechanism: each rail is moved with `transform: translateX()` only. Transform
-// keeps the element in normal flow, so its box still reserves its original space
-// and the centered timeline NEVER shifts — no placeholders, no reflow. Slot
-// positions are anchored to [data-testid="primaryColumn"], the element we never
-// touch. The left nav's visible content is a `position: fixed` column inside
-// <header>, so for it we transform the <header> itself: that keeps the fixed
-// column full-height (the header is its containing block) and floats it above
-// the timeline. Dotted borders are drawn as separate overlays at each block's
-// content box, so X's own re-renders can't strip them. A declarative registry
-// keeps the engine generic for future, smaller blocks.
+// Mechanism: both lists are `display:flex; flex-direction:column`, so we reorder
+// purely with the CSS `order` property — no DOM surgery (React-safe), correct
+// reflow even though sidebar sections have very different heights. The item you
+// drag follows the finger via `transform`; everything else is `order`.
+//
+// Design (per AGENTS.md "Design: decide, don't default"). Surface = controls
+// injected into X's own chrome, so the decision is HARMONIZE with X:
+//   • reuse X's shapes — rounded-full button at X's 44px control height; edit
+//     outlines are rounded to echo its nav pills / sidebar cards;
+//   • one accent (indigo #6366f1), deliberately a notch off X's blue so the
+//     Arrange button reads as an *added tool*, not a native X control;
+//   • minimal footprint — a single button + a per-item drag affordance, no panels;
+//   • motion is user-driven (the drag) or gated behind prefers-reduced-motion.
 
 declare const airglow: any;
 
 const BTN_ID = 'airglow-customizex-btn';
 const STYLE_ID = 'airglow-customizex-style';
-const BORDER_CLASS = 'airglow-customizex-border';
+const ITEM_CLASS = 'airglow-customizex-item';
 const EDIT_ROOT_CLASS = 'airglow-customizex-edit';
-const LAYOUT_KEY = 'customizex-layout';
-
-type Rect = { left: number; width: number; top: number; height: number };
+const ORDER_KEY = 'customizex-order';
 
 // ---------------------------------------------------------------------------
-// Declarative registry.
-//   move        — the element we translate (+raise).
-//   contentRect — the tight, visible box of the rail (for the dotted border and
-//                 for drag hit-testing); it already reflects the live transform.
-// A slot is a vertical stripe anchored to one side of the timeline column.
+// Reorderable lists. Each is a flex column; `items()` returns the movable
+// children with a stable key + their home position (DOM index). Adding another
+// reorderable region later = add a ListDef.
 // ---------------------------------------------------------------------------
-type Block = { id: string; defaultSlot: string; width: number; move: () => HTMLElement | null };
-type Slot = { id: string; side: 'left' | 'right' };
+type Item = { key: string; el: HTMLElement; homeSlot: number };
+type ListDef = { id: string; container: () => HTMLElement | null; items: () => Item[] };
 
-const LANE_GAP = { left: 0, right: 30 };
+// -- Left nav: every direct child of nav[role=navigation] (Home … More).
+const navContainer = (): HTMLElement | null =>
+  document.querySelector('header[role="banner"] nav[role="navigation"]');
 
-const SLOTS: Slot[] = [
-  { id: 'stripe-left', side: 'left' },
-  { id: 'stripe-right', side: 'right' },
+function navItems(): Item[] {
+  const cont = navContainer();
+  if (!cont) return [];
+  return (Array.from(cont.children) as HTMLElement[]).map((el, i) => {
+    const a = (el.matches('a,button') ? el : el.querySelector('a,button')) as HTMLElement | null;
+    const key =
+      el.getAttribute('data-testid') || a?.getAttribute('data-testid') ||
+      el.getAttribute('href') || a?.getAttribute('href') ||
+      (el.textContent || '').trim() || `nav-${i}`;
+    return { key, el, homeSlot: i };
+  });
+}
+
+// -- Right sidebar: the four content sections, identified by a non-localized
+// inner signal (testids/hrefs, not visible text). Other children (search-row
+// spacer, divider, footer) are left fixed in place.
+const SIDEBAR_SIGS: { key: string; sel: string }[] = [
+  { key: 'search', sel: '[data-testid="SearchBox_Search_Input"]' },
+  { key: 'premium', sel: 'a[href="/i/premium_sign_up"]' },
+  { key: 'trends', sel: '[data-testid="trend"]' },
+  { key: 'whotofollow', sel: '[data-testid="UserCell"]' },
 ];
 
-const navHeader = (): HTMLElement | null => document.querySelector('header[role="banner"]');
+function sidebarContainer(): HTMLElement | null {
+  const side = document.querySelector('[data-testid="sidebarColumn"]');
+  if (!side) return null;
+  const search = side.querySelector('[data-testid="SearchBox_Search_Input"]') as HTMLElement | null;
+  const trend = side.querySelector('[data-testid="trend"]') as HTMLElement | null;
+  if (!search || !trend) return null;
+  // The sections container is the lowest common ancestor of the search box and a
+  // trend — they live in different sibling sections directly under it. (Anchoring
+  // on a single trend and climbing by child-count stops too early, inside the
+  // trends list which itself has many children.)
+  const searchAnc = new Set<HTMLElement>();
+  for (let n: HTMLElement | null = search; n && n !== side; n = n.parentElement) searchAnc.add(n);
+  let lca: HTMLElement | null = trend;
+  while (lca && lca !== side && !searchAnc.has(lca)) lca = lca.parentElement;
+  if (lca && lca !== side && lca.children.length >= 4) return lca;
+  return null;
+}
 
-const BLOCKS: Block[] = [
-  { id: 'nav-rail', defaultSlot: 'stripe-left', width: 275, move: navHeader },
-  { id: 'sidebar-rail', defaultSlot: 'stripe-right', width: 350, move: () => document.querySelector('[data-testid="sidebarColumn"]') },
+function sidebarItems(): Item[] {
+  const cont = sidebarContainer();
+  if (!cont) return [];
+  const children = Array.from(cont.children) as HTMLElement[];
+  const out: Item[] = [];
+  for (const sig of SIDEBAR_SIGS) {
+    const idx = children.findIndex((ch) => ch.querySelector(sig.sel));
+    if (idx >= 0) out.push({ key: sig.key, el: children[idx], homeSlot: idx });
+  }
+  return out;
+}
+
+const LISTS: ListDef[] = [
+  { id: 'nav', container: navContainer, items: navItems },
+  { id: 'sidebar', container: sidebarContainer, items: sidebarItems },
 ];
-
-const blockById = (id: string) => BLOCKS.find((b) => b.id === id);
-const slotById = (id: string) => SLOTS.find((s) => s.id === id);
+const listById = (id: string) => LISTS.find((l) => l.id === id);
 
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-let layout: Record<string, string> = identityLayout();
+let order: Record<string, string[]> = { nav: [], sidebar: [] };
 let arranging = false;
 let mutating = false; // set while we write to the DOM so the observer ignores us
-const borders = new Map<string, HTMLElement>();
-// `previewSlot` is the slot the dragged block is currently hovering — the other
-// block reflows to match it live (iPhone-style), before the finger is released.
-let drag: { blockId: string; dx: number; dy: number; previewSlot: string } | null = null;
-let startX = 0;
-let startY = 0;
+// Active drag. `ty` is the last transform we applied; `grabOffset` is where in
+// the item the finger landed.
+let drag: { listId: string; key: string; pointerY: number; grabOffset: number; ty: number } | null = null;
 
-function identityLayout(): Record<string, string> {
-  const m: Record<string, string> = {};
-  for (const b of BLOCKS) m[b.id] = b.defaultSlot;
-  return m;
+function normalizeOrder(saved: string[] | undefined, keys: string[]): string[] {
+  const set = new Set(keys);
+  const out = Array.isArray(saved) ? saved.filter((k) => set.has(k)) : [];
+  for (const k of keys) if (!out.includes(k)) out.push(k); // append items X added since
+  return out;
 }
-function isIdentity(l: Record<string, string>): boolean {
-  return BLOCKS.every((b) => l[b.id] === b.defaultSlot);
+function arraysEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
 }
-function sanitize(raw: any): Record<string, string> {
-  const l = identityLayout();
-  if (raw && typeof raw === 'object') {
-    for (const b of BLOCKS) {
-      const v = raw[b.id];
-      if (typeof v === 'string' && slotById(v)) l[b.id] = v;
-    }
+function sanitize(raw: any): Record<string, string[]> {
+  const o: Record<string, string[]> = { nav: [], sidebar: [] };
+  for (const l of LISTS) {
+    const v = raw && raw[l.id];
+    o[l.id] = Array.isArray(v) ? v.filter((x: any) => typeof x === 'string') : [];
   }
-  return l;
+  return o;
+}
+function saveOrder() {
+  try { airglow.storage.set(ORDER_KEY, order); } catch {}
 }
 
 // ---------------------------------------------------------------------------
-// Lane geometry — anchored to the timeline column (never moved).
-// ---------------------------------------------------------------------------
-function primaryRect(): DOMRect | null {
-  const p = document.querySelector('[data-testid="primaryColumn"]') as HTMLElement | null;
-  return p ? p.getBoundingClientRect() : null;
-}
-
-// Where a block's LEFT edge should sit when placed in a slot. Blocks anchor to
-// the timeline-facing edge, so a block wider than the gap extends OUTWARD (toward
-// the viewport edge) and never overlaps the timeline:
-//   left slot  → block's right edge meets the timeline's left edge
-//   right slot → block's left edge meets the timeline's right edge (+gap)
-function slotTargetLeft(slotId: string, width: number): number | null {
-  const slot = slotById(slotId);
-  const p = primaryRect();
-  if (!slot || !p) return null;
-  return Math.round(slot.side === 'left' ? p.left - LANE_GAP.left - width : p.right + LANE_GAP.right);
-}
-
-// The slot a block occupies for live positioning. The dragged block keeps its
-// committed slot as its base (it follows the finger via the drag delta on top);
-// a non-dragged block shifts into the dragged block's committed slot the moment
-// the drag previews over its slot — so the rails trade places live, not on drop.
-function liveSlot(blockId: string): string {
-  const committed = layout[blockId] ?? blockById(blockId)?.defaultSlot ?? '';
-  if (!drag || blockId === drag.blockId) return committed;
-  const draggedCommitted = layout[drag.blockId];
-  if (drag.previewSlot !== draggedCommitted && committed === drag.previewSlot) return draggedCommitted;
-  return committed;
-}
-
-// Horizontal shift from a block's home position to its live slot. Returns null
-// when the timeline geometry isn't available (e.g. mid SPA-navigation) so the
-// caller can keep the rail where it is instead of snapping it to default.
-function targetTranslateX(b: Block): number | null {
-  const to = slotTargetLeft(liveSlot(b.id), b.width);
-  const home = slotTargetLeft(b.defaultSlot, b.width);
-  return to !== null && home !== null ? to - home : null;
-}
-
-// The block's live content box — where its dotted border goes and where drags
-// are hit-tested. Derived purely from the layout math (plus the live drag delta),
-// NOT by reading X's geometry, so the border always tracks the block including
-// mid-drag and after a swap.
-function contentRect(b: Block): Rect | null {
-  const left = slotTargetLeft(liveSlot(b.id), b.width);
-  if (left === null) return null;
-  let dx = 0, dy = 0;
-  if (drag?.blockId === b.id) { dx = drag.dx; dy = drag.dy; }
-  return { left: left + dx, width: b.width, top: dy, height: window.innerHeight };
-}
-
-// ---------------------------------------------------------------------------
-// Styles
+// Styles — harmonized with X (see header). Only motion is the optional, gated
+// outline fade; the drag itself is direct manipulation.
 // ---------------------------------------------------------------------------
 const css = `
 #${BTN_ID} {
   position: fixed; right: 18px; top: 9px; z-index: 2147483646;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  height: 44px; min-width: 78px; padding: 0 14px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 44px; padding: 0 16px;
   border: none; border-radius: 9999px;
-  font: 600 13.5px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #fff; background: #7856ff; box-shadow: 0 3px 12px rgba(120,86,255,.4);
-  cursor: pointer; transition: background .25s ease, transform .15s ease;
+  font: 600 13.5px/1 -apple-system, system-ui, "Segoe UI", sans-serif;
+  color: #fff; background: #6366f1; box-shadow: 0 3px 12px rgba(99,102,241,.4);
+  cursor: pointer;
 }
-#${BTN_ID}:hover { background: #6a46f0; transform: translateY(-1px); }
-#${BTN_ID}:active { transform: translateY(0); }
+#${BTN_ID}:hover { background: #5457e5; }
+#${BTN_ID}:active { transform: translateY(1px); }
+#${BTN_ID} svg { width: 15px; height: 15px; display: block; }
+html.${EDIT_ROOT_CLASS} #${BTN_ID} { background: #4f46e5; }
 
-/* The single dotted border, drawn as an overlay over each movable block. */
-.${BORDER_CLASS} {
-  position: fixed; z-index: 2147483643; pointer-events: none; box-sizing: border-box;
-  border: 2px dotted rgba(120,86,255,.75); border-radius: 12px;
+/* Movable items in arrange mode: a rounded dashed ring echoing X's pills/cards. */
+html.${EDIT_ROOT_CLASS} .${ITEM_CLASS} {
+  cursor: grab; outline: 1.5px dashed rgba(120,120,140,.5); outline-offset: -3px;
+  border-radius: 14px;
 }
-.${BORDER_CLASS}.dragging { border-style: solid; background: rgba(120,86,255,.10); }
+.${ITEM_CLASS}.dragging {
+  cursor: grabbing; outline: 1.5px solid rgba(99,102,241,.9); outline-offset: -3px;
+  border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.28); position: relative;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.${EDIT_ROOT_CLASS} .${ITEM_CLASS} { transition: outline-color .15s ease; }
+}
 `;
 
 function injectStyle() {
@@ -180,6 +180,7 @@ function setClass(el: HTMLElement, name: string, on: boolean) {
 // ---------------------------------------------------------------------------
 // Arrange button (entrypoint)
 // ---------------------------------------------------------------------------
+const GRIP = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>`;
 let lastLabel = '';
 function ensureButton() {
   let btn = document.getElementById(BTN_ID) as HTMLButtonElement | null;
@@ -193,66 +194,77 @@ function ensureButton() {
   const label = arranging ? 'Done' : 'Arrange';
   if (label !== lastLabel) {
     lastLabel = label;
-    btn.textContent = label;
+    btn.innerHTML = `${GRIP}<span>${label}</span>`;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Dotted-border overlays (arrange mode only). Inset slightly so the border hugs
-// the visible content.
+// Engine: apply each list's order via CSS `order`; follow the finger on the
+// dragged item. Custom order applies whether or not we're arranging; arrange
+// mode only adds the edit affordances + enables dragging.
 // ---------------------------------------------------------------------------
-function ensureBorders() {
-  if (!arranging) {
-    for (const [, ov] of borders) ov.remove();
-    borders.clear();
-    return;
-  }
-  for (const b of BLOCKS) {
-    const rect = contentRect(b);
-    let ov = borders.get(b.id);
-    if (!rect) continue; // geometry not ready — keep the existing border put
-    if (!ov || !ov.isConnected) {
-      ov = document.createElement('div');
-      ov.className = BORDER_CLASS;
-      ov.id = `airglow-customizex-border-${b.id}`;
-      document.body.appendChild(ov);
-      borders.set(b.id, ov);
-    }
-    setStyle(ov, 'left', `${rect.left}px`);
-    setStyle(ov, 'top', `${rect.top + 8}px`);
-    setStyle(ov, 'width', `${rect.width}px`);
-    setStyle(ov, 'height', `${rect.height - 16}px`);
-    setClass(ov, 'dragging', drag?.blockId === b.id);
-  }
+function isIdentity(list: ListDef, items: Item[]): boolean {
+  const homeKeys = items.slice().sort((a, b) => a.homeSlot - b.homeSlot).map((i) => i.key);
+  return arraysEqual(normalizeOrder(order[list.id], items.map((i) => i.key)), homeKeys);
 }
 
-// ---------------------------------------------------------------------------
-// Engine: translate each block to its assigned lane (or clear it).
-// ---------------------------------------------------------------------------
+function positionDragged(el: HTMLElement) {
+  if (!drag) return;
+  const rect = el.getBoundingClientRect();
+  const base = rect.top - drag.ty;            // the item's flex slot top (transform removed)
+  drag.ty = drag.pointerY - drag.grabOffset - base; // keep the grabbed point under the finger
+  setStyle(el, 'transform', `translateY(${drag.ty}px)`);
+  setStyle(el, 'transition', 'none');
+  setStyle(el, 'zIndex', '2147483640');
+  setClass(el, 'dragging', true);
+}
+
 function applyLayout() {
-  const relocated = arranging || !isIdentity(layout);
-  for (const b of BLOCKS) {
-    const el = b.move();
-    if (!el) continue;
+  for (const list of LISTS) {
+    const container = list.container();
+    if (!container) continue;
+    const items = list.items();
+    if (!items.length) continue;
+
+    const keys = items.map((i) => i.key);
+    const ord = normalizeOrder(order[list.id], keys);
+    const relocated = arranging || !isIdentity(list, items);
+    const children = Array.from(container.children) as HTMLElement[];
+    const itemByEl = new Map(items.map((i) => [i.el, i]));
+
     if (!relocated) {
-      setStyle(el, 'transform', '');
-      setStyle(el, 'transition', '');
-      setStyle(el, 'zIndex', '');
+      for (const child of children) {
+        setStyle(child, 'order', '');
+        if (itemByEl.has(child)) {
+          setStyle(child, 'transform', ''); setStyle(child, 'transition', ''); setStyle(child, 'zIndex', '');
+          setClass(child, ITEM_CLASS, false); setClass(child, 'dragging', false);
+        }
+      }
       continue;
     }
-    const base = targetTranslateX(b);
-    if (base === null) continue; // geometry not ready (mid-navigation) — keep the rail put, don't snap to default
-    const isDragged = drag?.blockId === b.id;
-    let tx = base;
-    let ty = 0;
-    if (isDragged && drag) { tx += drag.dx; ty += drag.dy; }
-    setStyle(el, 'transform', tx || ty ? `translate(${tx}px, ${ty}px)` : '');
-    // Animate only while actively arranging (drag/reflow). In the persisted state
-    // re-assertions are instant, so a mid-navigation recompute can't slide the rail.
-    setStyle(el, 'transition', arranging && !isDragged ? 'transform .18s ease' : 'none');
-    setStyle(el, 'zIndex', isDragged ? '2147483641' : '2147483640');
+
+    const slots = items.map((i) => i.homeSlot).sort((a, b) => a - b);
+    children.forEach((child, ci) => {
+      const it = itemByEl.get(child);
+      if (it) {
+        const p = ord.indexOf(it.key);
+        setStyle(child, 'order', String(p >= 0 ? slots[p] : it.homeSlot));
+        setClass(child, ITEM_CLASS, arranging);
+        const isDragged = !!drag && drag.listId === list.id && drag.key === it.key;
+        if (!isDragged) {
+          setStyle(child, 'transform', ''); setStyle(child, 'transition', ''); setStyle(child, 'zIndex', '');
+          setClass(child, 'dragging', false);
+        }
+      } else {
+        setStyle(child, 'order', String(ci));
+      }
+    });
+
+    if (drag && drag.listId === list.id) {
+      const el = items.find((i) => i.key === drag!.key)?.el;
+      if (el) positionDragged(el);
+    }
   }
-  ensureBorders();
 }
 
 // ---------------------------------------------------------------------------
@@ -265,18 +277,13 @@ function schedule() {
   requestAnimationFrame(() => {
     scheduled = false;
     mutating = true;
-    try {
-      ensureButton();
-      applyLayout();
-    } finally {
-      mutating = false;
-    }
+    try { ensureButton(); applyLayout(); } finally { mutating = false; }
   });
 }
 const observer = new MutationObserver(schedule);
 
 // ---------------------------------------------------------------------------
-// Arrange mode + persistence
+// Arrange mode
 // ---------------------------------------------------------------------------
 function setArranging(on: boolean) {
   arranging = on;
@@ -286,37 +293,31 @@ function setArranging(on: boolean) {
   try { ensureButton(); applyLayout(); } finally { mutating = false; }
 }
 
-function saveLayout() {
-  try { airglow.storage.set(LAYOUT_KEY, layout); } catch {}
-}
-
 // ---------------------------------------------------------------------------
-// Pointer drag (capture phase, hit-tested against each block's content box).
+// Pointer drag (capture phase, hit-tested against item rects).
 // ---------------------------------------------------------------------------
-function blockAtPoint(x: number, y: number): string | null {
-  for (const b of BLOCKS) {
-    const r = contentRect(b);
-    if (r && x >= r.left && x <= r.left + r.width && y >= r.top && y <= r.top + r.height) return b.id;
+function itemAtPoint(x: number, y: number): { listId: string; key: string; rect: DOMRect } | null {
+  for (const list of LISTS) {
+    for (const it of list.items()) {
+      const r = it.el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return { listId: list.id, key: it.key, rect: r };
+    }
   }
   return null;
 }
-// With two stripes, the drop target is simply whichever side of the timeline the
-// pointer is on.
-function slotUnderPoint(x: number): string | null {
-  const p = primaryRect();
-  if (!p) return null;
-  return x < p.left + p.width / 2 ? 'stripe-left' : 'stripe-right';
+
+function draggedEl(): HTMLElement | null {
+  if (!drag) return null;
+  return listById(drag.listId)?.items().find((i) => i.key === drag!.key)?.el ?? null;
 }
 
 function onPointerDown(e: PointerEvent) {
   if (!arranging || e.button !== 0) return;
-  const id = blockAtPoint(e.clientX, e.clientY);
-  if (!id) return;
+  const hit = itemAtPoint(e.clientX, e.clientY);
+  if (!hit) return;
   e.preventDefault();
   e.stopPropagation();
-  drag = { blockId: id, dx: 0, dy: 0, previewSlot: layout[id] ?? blockById(id)?.defaultSlot ?? '' };
-  startX = e.clientX;
-  startY = e.clientY;
+  drag = { listId: hit.listId, key: hit.key, pointerY: e.clientY, grabOffset: e.clientY - hit.rect.top, ty: 0 };
   try { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); } catch {}
   mutating = true;
   try { applyLayout(); } finally { mutating = false; }
@@ -325,10 +326,24 @@ function onPointerDown(e: PointerEvent) {
 function onPointerMove(e: PointerEvent) {
   if (!drag) return;
   e.preventDefault();
-  drag.dx = e.clientX - startX;
-  drag.dy = e.clientY - startY;
-  // The slot under the finger; the other block reflows toward it immediately.
-  drag.previewSlot = slotUnderPoint(e.clientX) ?? drag.previewSlot;
+  drag.pointerY = e.clientY;
+  const list = listById(drag.listId);
+  if (list) {
+    const items = list.items();
+    const ord = normalizeOrder(order[drag.listId], items.map((i) => i.key));
+    const others = ord.filter((k) => k !== drag!.key);
+    // Insert the dragged key where the finger sits relative to the other items.
+    let idx = 0;
+    for (const k of others) {
+      const el = items.find((i) => i.key === k)?.el;
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (e.clientY > r.top + r.height / 2) idx++;
+      else break;
+    }
+    const preview = [...others.slice(0, idx), drag.key, ...others.slice(idx)];
+    if (!arraysEqual(preview, ord)) order[drag.listId] = preview;
+  }
   mutating = true;
   try { applyLayout(); } finally { mutating = false; }
 }
@@ -337,21 +352,8 @@ function onPointerUp(e: PointerEvent) {
   if (!drag) return;
   e.preventDefault();
   e.stopPropagation();
-  const moved = Math.abs(drag.dx) > 6 || Math.abs(drag.dy) > 6;
-  const dragged = drag.blockId;
-  // Commit the previewed slot — the other block has already reflowed to match.
-  const target = drag.previewSlot;
   drag = null;
-  if (moved && target) {
-    const from = layout[dragged];
-    if (target !== from) {
-      // Swap whoever occupies the target slot into the vacated slot.
-      const occupant = BLOCKS.find((b) => b.id !== dragged && layout[b.id] === target);
-      if (occupant) layout[occupant.id] = from;
-      layout[dragged] = target;
-      saveLayout();
-    }
-  }
+  saveOrder();
   mutating = true;
   try { applyLayout(); } finally { mutating = false; }
 }
@@ -369,11 +371,11 @@ function attach() {
   document.addEventListener('pointerup', onPointerUp, true);
   document.addEventListener('pointercancel', onPointerUp, true);
 
-  // Suppress the click that follows a drag while editing.
+  // Suppress the click that follows a drag inside a movable item while editing.
   document.addEventListener(
     'click',
     (e) => {
-      if (arranging && blockAtPoint(e.clientX, e.clientY)) { e.preventDefault(); e.stopPropagation(); }
+      if (arranging && itemAtPoint(e.clientX, e.clientY)) { e.preventDefault(); e.stopPropagation(); }
     },
     true,
   );
@@ -394,7 +396,7 @@ function attach() {
 }
 
 async function init() {
-  try { layout = sanitize(await airglow.storage.get(LAYOUT_KEY)); } catch {}
+  try { order = sanitize(await airglow.storage.get(ORDER_KEY)); } catch {}
   if (document.body) attach();
   else window.addEventListener('DOMContentLoaded', attach, { once: true });
 }

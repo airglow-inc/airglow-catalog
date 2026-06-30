@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppPage } from '@shared/components';
 
@@ -9,13 +9,8 @@ const appId =
   new URLSearchParams(location.search).get('app') ||
   'customizable-x';
 
-// The userscript and this page share the same airglow.storage key.
-const LAYOUT_KEY = 'customizex-layout';
-// Identity layout — each rail in its home stripe (visually stock X).
-const DEFAULT_LAYOUT: Record<string, string> = {
-  'nav-rail': 'stripe-left',
-  'sidebar-rail': 'stripe-right',
-};
+// The userscript and this page share this airglow.storage key.
+const ORDER_KEY = 'customizex-order';
 
 // NOTE: the shared AppPage's Tailwind layout classes (p-8, max-w-6xl, …) don't
 // get generated in an app's own CSS build, so its padding renders as 0. We use
@@ -33,9 +28,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+// The entry point the app injects, styled verbatim from the userscript: a small
+// indigo "Arrange" pill (with a grip glyph) that sits by X's search box.
 function Preview() {
-  // The entry point the app injects: an "Arrange" pill that floats at the
-  // top-right of X, next to the search box.
   return (
     <div
       style={{
@@ -43,20 +38,21 @@ function Preview() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      <button
-        type="button"
+      <span
         style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          height: 44, minWidth: 78, padding: '0 14px',
-          border: 'none', borderRadius: 9999,
-          font: '600 13.5px/1 system-ui, -apple-system, "Segoe UI", sans-serif',
-          color: '#fff', background: '#7856ff',
-          boxShadow: '0 3px 12px rgba(120,86,255,.4)',
-          cursor: 'default',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          height: 44, padding: '0 16px', borderRadius: 9999,
+          font: '600 13.5px/1 -apple-system, system-ui, "Segoe UI", sans-serif',
+          color: '#fff', background: '#6366f1', boxShadow: '0 3px 12px rgba(99,102,241,.4)',
         }}
       >
+        <svg viewBox="0 0 24 24" width={15} height={15} fill="currentColor" aria-hidden>
+          <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
+          <circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" />
+          <circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" />
+        </svg>
         Arrange
-      </button>
+      </span>
     </div>
   );
 }
@@ -70,28 +66,9 @@ function Bullet({ children }: { children: ReactNode }) {
   );
 }
 
-function describeLayout(layout: Record<string, string>): string {
-  const nav = layout['nav-rail'] === 'stripe-right' ? 'right' : 'left';
-  const side = layout['sidebar-rail'] === 'stripe-left' ? 'left' : 'right';
-  if (nav === 'left' && side === 'right') return 'Default — nav on the left, sidebar on the right.';
-  return `Swapped — nav on the ${nav}, sidebar on the ${side}.`;
-}
-
 function App() {
-  const [layout, setLayout] = useState<Record<string, string>>(DEFAULT_LAYOUT);
-
-  useEffect(() => {
-    airglow.storage
-      .get(LAYOUT_KEY)
-      .then((v: any) => {
-        if (v && typeof v === 'object') setLayout({ ...DEFAULT_LAYOUT, ...v });
-      })
-      .catch(() => {});
-  }, []);
-
   function reset() {
-    setLayout(DEFAULT_LAYOUT);
-    airglow.storage.set(LAYOUT_KEY, DEFAULT_LAYOUT).catch(() => {});
+    airglow.storage.set(ORDER_KEY, { nav: [], sidebar: [] }).catch(() => {});
   }
 
   return (
@@ -109,24 +86,24 @@ function App() {
             }}
           >
             <Bullet>
-              An <strong>Arrange</strong> button appears at the top-right of X
-              (Twitter), next to the search box.
+              An <strong>Arrange</strong> button sits by X's search box, top-right.
+              Click it to start arranging.
             </Bullet>
             <Bullet>
-              Click it to enter arrange mode — the left navigation and the right
-              sidebar get a dotted border to show they can be moved.
+              Reorder the <strong>left menu</strong> — drag Home, Explore,
+              Notifications and the rest into whatever order you read in.
             </Bullet>
             <Bullet>
-              Drag either stripe onto the other side to <strong>swap</strong> them.
-              The timeline stays centered.
+              Reorder the <strong>right sidebar</strong> — move Search, Subscribe to
+              Premium, What's happening and Who to follow up or down.
             </Bullet>
             <Bullet>
-              Click <strong>Arrange</strong> again or press <kbd>Esc</kbd> to save.
-              Your layout persists across reloads.
+              Items slide to make room as you drag. Click <strong>Arrange</strong>{' '}
+              again or press <kbd>Esc</kbd> to finish — your order sticks across reloads.
             </Bullet>
           </ul>
         </Section>
-        <Section title="Current layout">
+        <Section title="Reset">
           <div
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -135,7 +112,7 @@ function App() {
               fontSize: '0.875rem', color: 'var(--fg-secondary)',
             }}
           >
-            <span>{describeLayout(layout)}</span>
+            <span>Put both lists back in X's original order.</span>
             <button
               type="button"
               onClick={reset}
@@ -146,11 +123,11 @@ function App() {
                 font: '600 13px/1 system-ui, sans-serif', cursor: 'pointer',
               }}
             >
-              Reset layout
+              Reset order
             </button>
           </div>
           <p style={{ margin: '10px 2px 0', fontSize: '0.8125rem', color: 'var(--fg-tertiary)' }}>
-            Reset applies on the next page load (or the next paint on an open X tab).
+            Takes effect on the next page load (or the next paint on an open X tab).
           </p>
         </Section>
       </div>
