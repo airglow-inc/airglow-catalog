@@ -33,7 +33,17 @@ const ORDER_KEY = 'customizex-order';
 // reorderable region later = add a ListDef.
 // ---------------------------------------------------------------------------
 type Item = { key: string; el: HTMLElement; homeSlot: number };
-type ListDef = { id: string; container: () => HTMLElement | null; items: () => Item[] };
+// `frameOf` returns the element the dotted outline traces (so it hugs X's actual
+// capsule/card, not the padded section wrapper); `frameRadius` forces a corner
+// radius for flat items (nav links) or `null` to use the element's own radius
+// (sidebar pills/cards). Drag + reorder always act on the item element itself.
+type ListDef = {
+  id: string;
+  container: () => HTMLElement | null;
+  items: () => Item[];
+  frameOf: (el: HTMLElement) => HTMLElement;
+  frameRadius: string | null;
+};
 
 // -- Left nav: every direct child of nav[role=navigation] (Home … More).
 const navContainer = (): HTMLElement | null =>
@@ -92,9 +102,28 @@ function sidebarItems(): Item[] {
   return out;
 }
 
+// The visible capsule inside a sidebar section: the section itself (cards) or a
+// descendant (the search pill, the Subscribe card) — whichever first has a real
+// border-radius and box. The outline then traces that shape automatically.
+function sidebarFrameOf(el: HTMLElement): HTMLElement {
+  const fits = (e: HTMLElement) => {
+    const r = e.getBoundingClientRect();
+    return (parseFloat(getComputedStyle(e).borderRadius) || 0) >= 12 && r.width > 100 && r.height > 20;
+  };
+  if (fits(el)) return el; // cards: the section itself is the rounded card
+  // Otherwise the capsule (search pill, Subscribe card) is a descendant — return
+  // the first (outermost, document order) element that has a real rounded box.
+  for (const c of Array.from(el.querySelectorAll('*')) as HTMLElement[]) {
+    if (fits(c)) return c;
+  }
+  return el;
+}
+
 const LISTS: ListDef[] = [
-  { id: 'nav', container: navContainer, items: navItems },
-  { id: 'sidebar', container: sidebarContainer, items: sidebarItems },
+  // Nav rows are flat and full-width — outline the row with a fixed radius.
+  { id: 'nav', container: navContainer, items: navItems, frameOf: (el) => el, frameRadius: '14px' },
+  // Sidebar capsules carry their own radius (pill / card) — trace it.
+  { id: 'sidebar', container: sidebarContainer, items: sidebarItems, frameOf: sidebarFrameOf, frameRadius: null },
 ];
 const listById = (id: string) => LISTS.find((l) => l.id === id);
 
@@ -148,14 +177,14 @@ const css = `
 #${BTN_ID} svg { width: 15px; height: 15px; display: block; }
 html.${EDIT_ROOT_CLASS} #${BTN_ID} { background: #4f46e5; }
 
-/* Movable items in arrange mode: a rounded dashed ring echoing X's pills/cards. */
+/* Movable items in arrange mode: a dashed ring that traces the element's own
+   shape (its border-radius is set per-item in JS — pill, card, or rounded row). */
 html.${EDIT_ROOT_CLASS} .${ITEM_CLASS} {
-  cursor: grab; outline: 1.5px dashed rgba(120,120,140,.5); outline-offset: -3px;
-  border-radius: 14px;
+  cursor: grab; outline: 1.5px dashed rgba(120,120,140,.55); outline-offset: -2px;
 }
 .${ITEM_CLASS}.dragging {
-  cursor: grabbing; outline: 1.5px solid rgba(99,102,241,.9); outline-offset: -3px;
-  border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.28); position: relative;
+  cursor: grabbing; outline: 1.5px solid rgba(99,102,241,.95); outline-offset: -2px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.28);
 }
 @media (prefers-reduced-motion: no-preference) {
   html.${EDIT_ROOT_CLASS} .${ITEM_CLASS} { transition: outline-color .15s ease; }
@@ -216,7 +245,15 @@ function positionDragged(el: HTMLElement) {
   setStyle(el, 'transform', `translateY(${drag.ty}px)`);
   setStyle(el, 'transition', 'none');
   setStyle(el, 'zIndex', '2147483640');
-  setClass(el, 'dragging', true);
+}
+
+// The dotted outline / lift go on the item's "frame" (its visible capsule), so
+// they trace X's actual shape; movement (order/transform) stays on the item.
+function decorate(list: ListDef, el: HTMLElement, edit: boolean, dragging: boolean) {
+  const frame = list.frameOf(el);
+  setClass(frame, ITEM_CLASS, edit);
+  setClass(frame, 'dragging', dragging);
+  setStyle(frame, 'borderRadius', edit && list.frameRadius ? list.frameRadius : '');
 }
 
 function applyLayout() {
@@ -237,7 +274,7 @@ function applyLayout() {
         setStyle(child, 'order', '');
         if (itemByEl.has(child)) {
           setStyle(child, 'transform', ''); setStyle(child, 'transition', ''); setStyle(child, 'zIndex', '');
-          setClass(child, ITEM_CLASS, false); setClass(child, 'dragging', false);
+          decorate(list, child, false, false);
         }
       }
       continue;
@@ -249,11 +286,10 @@ function applyLayout() {
       if (it) {
         const p = ord.indexOf(it.key);
         setStyle(child, 'order', String(p >= 0 ? slots[p] : it.homeSlot));
-        setClass(child, ITEM_CLASS, arranging);
         const isDragged = !!drag && drag.listId === list.id && drag.key === it.key;
+        decorate(list, child, arranging, isDragged);
         if (!isDragged) {
           setStyle(child, 'transform', ''); setStyle(child, 'transition', ''); setStyle(child, 'zIndex', '');
-          setClass(child, 'dragging', false);
         }
       } else {
         setStyle(child, 'order', String(ci));
