@@ -134,8 +134,9 @@ let order: Record<string, string[]> = { nav: [], sidebar: [] };
 let arranging = false;
 let mutating = false; // set while we write to the DOM so the observer ignores us
 // Active drag. `ty` is the last transform we applied; `grabOffset` is where in
-// the item the finger landed.
-let drag: { listId: string; key: string; pointerY: number; grabOffset: number; ty: number } | null = null;
+// the item the finger landed; `startCenter` is the dragged item's center at grab
+// (used to tell which way it's being moved).
+let drag: { listId: string; key: string; pointerY: number; grabOffset: number; ty: number; startCenter: number } | null = null;
 
 function normalizeOrder(saved: string[] | undefined, keys: string[]): string[] {
   const set = new Set(keys);
@@ -353,7 +354,7 @@ function onPointerDown(e: PointerEvent) {
   if (!hit) return;
   e.preventDefault();
   e.stopPropagation();
-  drag = { listId: hit.listId, key: hit.key, pointerY: e.clientY, grabOffset: e.clientY - hit.rect.top, ty: 0 };
+  drag = { listId: hit.listId, key: hit.key, pointerY: e.clientY, grabOffset: e.clientY - hit.rect.top, ty: 0, startCenter: hit.rect.top + hit.rect.height / 2 };
   try { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); } catch {}
   mutating = true;
   try { applyLayout(); } finally { mutating = false; }
@@ -366,15 +367,29 @@ function onPointerMove(e: PointerEvent) {
   const list = listById(drag.listId);
   if (list) {
     const items = list.items();
+    // Compare the dragged item's CENTER, not the raw pointer: a section's swap
+    // point shouldn't depend on where you grabbed it. (Grabbing a tall section
+    // low meant the pointer trailed far below the item, so you had to overshoot
+    // the neighbour by a lot before it reordered.)
+    const dragItem = items.find((i) => i.key === drag!.key);
+    const dragH = dragItem ? dragItem.el.getBoundingClientRect().height : 0;
+    const draggedCenter = e.clientY - drag.grabOffset + dragH / 2;
     const ord = normalizeOrder(order[drag.listId], items.map((i) => i.key));
     const others = ord.filter((k) => k !== drag!.key);
-    // Insert the dragged key where the finger sits relative to the other items.
+    // Swap when the dragged center passes the neighbour's *near* edge by a small
+    // amount, not its full half-height — otherwise a tall section (What's
+    // happening can be 700px+) needs an enormous drag before it reorders. Cap the
+    // required overlap; use the near edge for the direction of travel.
+    const CAP = 80;
+    const movingUp = draggedCenter < drag.startCenter;
     let idx = 0;
     for (const k of others) {
       const el = items.find((i) => i.key === k)?.el;
       if (!el) continue;
       const r = el.getBoundingClientRect();
-      if (e.clientY > r.top + r.height / 2) idx++;
+      const half = Math.min(r.height / 2, CAP);
+      const line = movingUp ? r.bottom - half : r.top + half;
+      if (draggedCenter > line) idx++;
       else break;
     }
     const preview = [...others.slice(0, idx), drag.key, ...others.slice(idx)];
