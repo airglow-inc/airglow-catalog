@@ -48,19 +48,31 @@ const AIRGLOW_ICON = (
 );
 
 const cardStyle: React.CSSProperties = {
-  display: 'inline-flex',
+  display: 'flex',
   flexDirection: 'column',
   gap: 10,
-  padding: '10px 14px',
+  padding: '16px 24px',
   width: '100%',
-  maxWidth: 240,
   boxSizing: 'border-box',
+  position: 'relative',
   background: 'linear-gradient(180deg, #FFFCF4, #FFFDFA)',
   border: '1.5px solid #F5A623',
   borderRadius: 10,
   boxShadow: '0 2px 10px rgba(245,166,35,0.14), 0 0 0 1px rgba(245,166,35,0.08)',
   fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 };
+
+// Section heading, present in every card state (like LinkedIn's "About");
+// the result state carries the reload control inline after the title.
+function PreviewHead({ refresh }: { refresh?: boolean }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.9)', lineHeight: 1.3 }}>
+      <span style={{ width: 22, height: 22, borderRadius: 5, overflow: 'hidden', display: 'inline-flex', flexShrink: 0 }}>{AIRGLOW_ICON}</span>
+      Socials
+      {refresh && <span style={{ padding: '0 2px', fontSize: 20, lineHeight: 1, color: 'rgba(0,0,0,0.35)', fontWeight: 400 }}>↻</span>}
+    </span>
+  );
+}
 
 // Static stand-ins for the real profile photos the widget fetches.
 const mockAvatar = (bg: string, initials: string) =>
@@ -70,10 +82,28 @@ const mockAvatar = (bg: string, initials: string) =>
     `<text x="16" y="21" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">${initials}</text></svg>`,
   );
 
-function PreviewAccountRow({ avatar, round, label, sub }: { avatar: string; round?: boolean; label: string; sub: string }) {
+// Brand logos, verbatim from userscripts/linkedin.ts.
+const GH_LOGO =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">' +
+      '<rect width="16" height="16" fill="#ffffff"/>' +
+      '<g transform="translate(1.6,1.6) scale(0.8)"><path fill="#1b1f24" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></g>' +
+    '</svg>',
+  );
+const X_LOGO =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+      '<rect width="24" height="24" fill="#000000"/>' +
+      '<g transform="translate(3.6,3.6) scale(0.7)"><path fill="#ffffff" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></g>' +
+    '</svg>',
+  );
+
+function PreviewAccountRow({ icon, label, sub }: { icon: string; label: string; sub: string }) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <img src={avatar} alt={label} style={{ width: 32, height: 32, borderRadius: round ? '50%' : 4, display: 'block', objectFit: 'cover' }} />
+      <img src={icon} alt={label} style={{ width: 32, height: 32, borderRadius: 4, display: 'block', objectFit: 'cover' }} />
       <span>
         <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.9)', lineHeight: 1.25, display: 'block' }}>{label}</span>
         <span style={{ fontSize: 12.5, fontWeight: 400, color: 'rgba(0,0,0,0.6)', lineHeight: 1.25, marginTop: 1, display: 'block' }}>{sub}</span>
@@ -82,16 +112,48 @@ function PreviewAccountRow({ avatar, round, label, sub }: { avatar: string; roun
   );
 }
 
+// The hover mini-card that appears over a GitHub/X row (styles verbatim from
+// the #agsf-hover rules in the userscript).
+function PreviewHoverCard() {
+  return (
+    <div
+      style={{
+        width: '100%', maxWidth: 280, boxSizing: 'border-box',
+        padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8,
+        background: 'linear-gradient(180deg, #FFFCF4, #FFFDFA)',
+        border: '1.5px solid #F5A623', borderRadius: 10,
+        boxShadow: '0 6px 24px rgba(0,0,0,0.16), 0 0 0 1px rgba(245,166,35,0.08)',
+        fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.55)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+        <img src={GH_LOGO} alt="" style={{ width: 16, height: 16, borderRadius: 4, display: 'block' }} />
+        GitHub
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <img src={mockAvatar('#57606a', 'JL')} alt="" style={{ width: 44, height: 44, borderRadius: 6, display: 'block', objectFit: 'cover', flexShrink: 0 }} />
+        <span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.9)', lineHeight: 1.25, display: 'block' }}>James Liounis</span>
+          <span style={{ fontSize: 12.5, color: 'rgba(0,0,0,0.6)', lineHeight: 1.25, marginTop: 1, display: 'block' }}>jamesliounis</span>
+        </span>
+      </span>
+      <span style={{ fontSize: 12.5, color: 'rgba(0,0,0,0.65)', lineHeight: 1.45 }}>42 repos · 310 followers · Boston, MA</span>
+      <span style={{ fontSize: 12.5, color: 'rgba(0,0,0,0.75)', lineHeight: 1.45 }}>ML engineer. Building data tooling.</span>
+    </div>
+  );
+}
+
 function Preview() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
       <div style={cardStyle}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.9)', padding: 2 }}>
-          <span style={{ width: 22, height: 22, borderRadius: 5, overflow: 'hidden', display: 'inline-flex', flexShrink: 0 }}>{AIRGLOW_ICON}</span>
+        <PreviewHead />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start', fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.8)', padding: '5px 16px', border: '1.5px solid #F5A623', borderRadius: 9999, background: '#fff' }}>
           Find socials
         </span>
       </div>
       <div style={cardStyle}>
+        <PreviewHead />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 400, color: 'rgba(0,0,0,0.6)', padding: 2, lineHeight: 1.3 }}>
           <span style={{ width: 14, height: 14, flexShrink: 0, borderRadius: '50%', border: '2px solid rgba(245,166,35,0.35)', borderTopColor: '#F5A623', boxSizing: 'border-box' }} />
           <span>🔗 github.com</span>
@@ -99,18 +161,24 @@ function Preview() {
         <span style={{ fontSize: 11.5, color: 'rgba(0,0,0,0.4)', paddingLeft: 22 }}>3 searches · 6 sources · 12s</span>
       </div>
       <div style={cardStyle}>
-        <PreviewAccountRow avatar={mockAvatar('#57606a', 'JL')} label="GitHub" sub="jamesliounis · 42 repos" />
-        <PreviewAccountRow avatar={mockAvatar('#1d9bf0', 'JL')} round label="X" sub="@JamesLiounis_ · 1.2K followers" />
-        <PreviewAccountRow avatar={mockAvatar('#5b6b7b', '🌐')} label="Website" sub="jamesliounis.com" />
+        <PreviewHead />
+        <span style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 36px' }}>
+          <PreviewAccountRow icon={GH_LOGO} label="GitHub" sub="jamesliounis · 42 repos" />
+          <PreviewAccountRow icon={X_LOGO} label="X" sub="@JamesLiounis_ · 1.2K followers" />
+          <PreviewAccountRow icon={mockAvatar('#5b6b7b', '🌐')} label="Website" sub="jamesliounis.com" />
+        </span>
+        <span style={{ position: 'absolute', top: 14, right: 16, fontSize: 16, lineHeight: 1, color: 'rgba(0,0,0,0.35)' }}>↻</span>
       </div>
+      <PreviewHoverCard />
       <p className="text-xs" style={{ color: 'var(--fg-tertiary)', margin: 0 }}>
-        The button sits below the affiliation block on a profile; while a lookup
-        runs, the pill shows the current phase plus elapsed time (searches run
-        server-side in one silent LLM call, so individual queries can't stream).
-        The result card then replaces it (cached — shown automatically next
-        visit): profile photo and repo count from GitHub; photo and follower
-        count for X; and a personal website if the person has one. The search
-        count and result links land in the trace below afterwards.
+        The widget renders as its own "Socials" section in the profile's main
+        column, right below the top card (above Sales Navigator / About). While
+        a lookup runs, the pill shows the current phase plus elapsed time
+        (searches run server-side in one silent LLM call, so individual queries
+        can't stream). The result rows then replace it (cached — shown
+        automatically next visit) with GitHub / X brand icons; hovering a row
+        opens the mini-card shown last: avatar, display name, handle, stats and
+        bio from the account's public profile.
       </p>
     </div>
   );

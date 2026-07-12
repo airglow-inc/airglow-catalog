@@ -81,7 +81,8 @@ const SYSTEM = `You find the personal GitHub account and the personal X (Twitter
 
 Work fast: at most 6 web searches and 2 page fetches total, then answer with your best verified result — the caller re-verifies and retries, so a quick null beats a slow rabbit hole.
 Answer once both accounts are resolved: found, or confidently absent (null).
-Reply with ONLY a JSON object, no prose around it:
+Immediately before EACH web search, output one line of the form ">> <the exact query>" with nothing else on it — these lines stream live progress to the user, so emit the line first and search right after.
+After the last search, reply with a JSON object, no prose other than the ">>" lines:
 {"queries": ["each web search query you ran, in order", ...], "github": {"handle": "...", "url": "..."} | null, "x": {"handle": "...", "url": "..."} | null, "website": "https://..." | null, "sources": ["domain", ...]}`;
 
 // Output format is prompted, not schema-forced: response_format json_schema
@@ -385,19 +386,47 @@ export async function findSocials(body: Body, onProgress?: ProgressFn): Promise<
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
   };
 
-  // One streaming call. The stream drives the live pill (each new url_citation
-  // → a source; usage → the search count); the resolved completion is still the
-  // authoritative result — the trace and parse build from it exactly as before,
-  // so a truncated stream degrades to the normal "unparsable reply" path, never
-  // a hang. No max_tokens: the gateway defaults web-tooling calls to the ceiling.
+  // One streaming call. The stream drives the live pill three ways: each new
+  // url_citation → a source; each complete ">> query" narration line → a live
+  // search (the server-side search tool itself streams no events, so the model
+  // is prompted to announce every query on its own line right before running
+  // it — the earliest real signal that searching started); usage → the
+  // authoritative search count, correcting the narrated estimate at the end.
+  // The resolved completion is still the authoritative result — the trace and
+  // parse build from it exactly as before, so a truncated stream degrades to
+  // the normal "unparsable reply" path, never a hang. No max_tokens: the
+  // gateway defaults web-tooling calls to the ceiling.
   const callModel = async (): Promise<string> => {
+    const base = searches;
+    let narrated = 0;
+    let usageCount: number | null = null;
+    let buf = '';
+    let scanned = 0;
+    let firstChunk = false;
     const res = await airglow.llm.chat({
       model: 'anthropic/claude-sonnet-5',
       tools: [{ type: 'openrouter:web_search' }, { type: 'openrouter:web_fetch' }],
       messages,
     }, {
       onEvent: (chunk: any) => {
+        if (!firstChunk) {
+          firstChunk = true;
+          progress({ phase: 'Searching the web…' });
+        }
         const delta = chunk?.choices?.[0]?.delta;
+        if (typeof delta?.content === 'string' && delta.content) {
+          buf += delta.content;
+          let nl;
+          while ((nl = buf.indexOf('\n', scanned)) >= 0) {
+            const line = buf.slice(scanned, nl).trim();
+            scanned = nl + 1;
+            const q = line.match(/^>>\s*(.+)$/)?.[1];
+            if (q) {
+              narrated++;
+              progress({ searches: base + (usageCount ?? narrated), phase: `Searching: ${q.slice(0, 80)}` });
+            }
+          }
+        }
         const anns = delta?.annotations;
         if (Array.isArray(anns)) {
           for (const a of anns) {
@@ -412,14 +441,20 @@ export async function findSocials(body: Body, onProgress?: ProgressFn): Promise<
         // web_search_requests rides the final usage chunk; surface it live if it
         // ever appears mid-stream, else it lands right before completion.
         const sc = chunk?.usage?.server_tool_use_details?.web_search_requests;
-        if (typeof sc === 'number' && sc > 0) progress({ searches: searches + sc });
+        if (typeof sc === 'number' && sc > 0) {
+          usageCount = sc;
+          progress({ searches: base + sc });
+        }
       },
     });
-    searches += res?.usage?.server_tool_use_details?.web_search_requests ?? 0;
+    const reported = res?.usage?.server_tool_use_details?.web_search_requests;
+    searches = base + (typeof reported === 'number' ? reported : (usageCount ?? narrated));
     progress({ searches });
     const msg = res?.choices?.[0]?.message;
     const text = typeof msg?.content === 'string' ? msg.content : '';
-    const t = text.trim();
+    // Trace keeps the reply minus the narration lines (parsed.queries already
+    // records the searches).
+    const t = text.replace(/^>>.*$/gm, '').trim();
     if (t) trace.push({ type: 'text', text: t.slice(0, 2000) });
     const cites = (Array.isArray(msg?.annotations) ? msg.annotations : [])
       .filter((a: any) => a?.type === 'url_citation')
@@ -433,7 +468,7 @@ export async function findSocials(body: Body, onProgress?: ProgressFn): Promise<
     return text;
   };
 
-  progress({ phase: 'Searching the web…' });
+  progress({ phase: 'Contacting model…' });
   let text: string;
   try {
     text = await callModel();

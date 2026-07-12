@@ -25,7 +25,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "4f9a2c0388ab",
+        "_hash": "5051bb5a00d0",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -57,7 +57,7 @@
         "entrypoint": {
           "selector": "#airglow-cine-btn"
         },
-        "_hash": "3a62a04e6ff7",
+        "_hash": "24118c8513a2",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -89,7 +89,7 @@
         "entrypoint": {
           "selector": "#airglow-customizex-btn"
         },
-        "_hash": "5822f82920d0",
+        "_hash": "b3ea146d7c7e",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -160,7 +160,7 @@
             "runAt": "document_start"
           }
         ],
-        "_hash": "f4b813ec90c2",
+        "_hash": "c4ccfc106d23",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -204,7 +204,7 @@
         "host_permissions": [
           "*://www.linkedin.com/*"
         ],
-        "_hash": "ab725eec84b2",
+        "_hash": "bca12be0643d",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -212,7 +212,7 @@
     {
       "id": "socials-finder",
       "name": "Socials Finder",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
       "matches": [
         "*://www.linkedin.com/*"
@@ -221,7 +221,7 @@
       "manifest": {
         "id": "socials-finder",
         "name": "Socials Finder",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
         "userscripts": [
           {
@@ -232,7 +232,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "24ecdbbea9f8",
+        "_hash": "1ef5dee63da4",
         "_hasUi": true,
         "_serverFunctions": []
       }

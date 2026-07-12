@@ -1,7 +1,8 @@
 // Socials Finder — LinkedIn profile pages (/in/<slug>).
 //
-// Injects an amber Airglow card below the top card's affiliation block (the
-// company/education shortcut list): a "Find socials" button that resolves the
+// Injects an amber Airglow "Socials" section into the profile's main column,
+// directly below the top card block (above Sales Navigator / About), shaped
+// like LinkedIn's own section cards: a "Find socials" button that resolves the
 // person's GitHub and X accounts via findSocials (LLM + web-search server tool, bundled
 // into this userscript) and caches the result per profile in airglow.storage.
 // On a profile with a cached result the links render immediately, no button.
@@ -35,6 +36,7 @@ interface SocialsEntry {
 const NS = 'agsf';
 const CARD_ID = `${NS}-card`;
 const STYLE_ID = `${NS}-style`;
+const HOVER_ID = `${NS}-hover`;
 
 const GH_LOGO =
   'data:image/svg+xml;utf8,' +
@@ -73,33 +75,32 @@ const AIRGLOW_ICON =
   '<path fill="#F99E3D" d="M200.8 753.5 L318.8 753.5 L355 678.2 L393.1 697.8 L448.8 634.2 L473.3 659.6 L468.4 634.2 L475.2 627.4 L446.9 570.7 L334.5 667.5 Z"/>' +
   '<path fill="#F99E3D" d="M595.4 753.5 L707.6 753.5 L556.3 669.4 Z"/></g></svg>';
 
-const ANCHOR_ATTR = 'data-agsf-anchor';
-
 const CSS = `
-/* The affiliation shortcut list is the card's positioning anchor: the card
-   hangs absolutely below it (top: 100%), adding NO height to the top card's
-   grid (in-flow it would stack into the same grid cell and overlap). */
-[${ANCHOR_ATTR}] { position: relative; }
+/* Own section card in the profile's main column, shaped like LinkedIn's
+   About/Featured cards (full width, rounded, 8px gap above). */
 #${CARD_ID} {
-  position: absolute; top: 100%; left: 0; z-index: 10;
-  display: inline-flex; flex-direction: column; gap: 10px;
-  margin-top: 12px; padding: 10px 14px; max-width: 300px; width: max-content; box-sizing: border-box;
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  margin-top: 8px; padding: 16px 24px; width: 100%; box-sizing: border-box;
   background: linear-gradient(180deg, #FFFCF4, #FFFDFA);
   border: 1.5px solid #F5A623; border-radius: 10px;
   box-shadow: 0 2px 10px rgba(245,166,35,0.14), 0 0 0 1px rgba(245,166,35,0.08);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-/* Fallback when no affiliation block is found: normal flow at the end of the top card. */
-#${CARD_ID}.${NS}-inflow { position: relative; top: auto; left: auto; }
-#${CARD_ID} .${NS}-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: none; background: none; padding: 2px 2px; margin: 0; cursor: pointer;
-  font: 600 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: rgba(0,0,0,0.9);
+#${CARD_ID} .${NS}-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 600; color: rgba(0,0,0,0.9); line-height: 1.3;
 }
-#${CARD_ID} .${NS}-btn:hover { text-decoration: underline; }
+#${CARD_ID} .${NS}-btn {
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  border: 1.5px solid #F5A623; border-radius: 9999px; background: #fff;
+  padding: 5px 16px; margin: 0; cursor: pointer;
+  font: 600 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: rgba(0,0,0,0.8);
+}
+#${CARD_ID} .${NS}-btn:hover { background: rgba(245,166,35,0.1); }
 #${CARD_ID} .${NS}-mark { width: 22px; height: 22px; border-radius: 5px; overflow: hidden; display: inline-flex; flex-shrink: 0; }
 #${CARD_ID} .${NS}-mark svg { width: 22px; height: 22px; }
+#${CARD_ID} .${NS}-rows { display: flex; flex-wrap: wrap; gap: 10px 36px; }
 #${CARD_ID} .${NS}-status {
   display: inline-flex; align-items: center; gap: 8px;
   font: 400 13px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -130,11 +131,37 @@ const CSS = `
 }
 #${CARD_ID} .${NS}-retry:hover { text-decoration: underline; }
 #${CARD_ID} .${NS}-refresh {
-  position: absolute; top: 6px; right: 8px; border: none; background: none;
-  padding: 0 2px; cursor: pointer; font-size: 16px; line-height: 1;
-  color: rgba(0,0,0,0.35);
+  border: none; background: none; padding: 0 2px; margin: 0; cursor: pointer;
+  font-size: 20px; line-height: 1; color: rgba(0,0,0,0.35);
 }
 #${CARD_ID} .${NS}-refresh:hover { color: rgba(0,0,0,0.7); }
+/* Hover mini-card: fixed + appended to <body> so the top card's
+   overflow:hidden can't clip it. */
+#${HOVER_ID} {
+  position: fixed; z-index: 2147483647; width: 280px; box-sizing: border-box;
+  background: linear-gradient(180deg, #FFFCF4, #FFFDFA);
+  border: 1.5px solid #F5A623; border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.16), 0 0 0 1px rgba(245,166,35,0.08);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+/* The whole mini-card is one link to the account page. */
+#${HOVER_ID} a.${NS}-hv-link {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 14px;
+  text-decoration: none; color: inherit; cursor: pointer;
+}
+#${HOVER_ID} .${NS}-hv-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.55);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+#${HOVER_ID} .${NS}-hv-head img { width: 16px; height: 16px; border-radius: 4px; display: block; }
+#${HOVER_ID} .${NS}-hv-main { display: flex; align-items: center; gap: 10px; }
+#${HOVER_ID} .${NS}-hv-main img { width: 44px; height: 44px; border-radius: 6px; display: block; object-fit: cover; flex-shrink: 0; }
+#${HOVER_ID} .${NS}-hv-main img.${NS}-avatar-x { border-radius: 50%; }
+#${HOVER_ID} .${NS}-hv-name { font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.9); line-height: 1.25; }
+#${HOVER_ID} .${NS}-hv-handle { font-size: 12.5px; color: rgba(0,0,0,0.6); line-height: 1.25; margin-top: 1px; }
+#${HOVER_ID} .${NS}-hv-info { font-size: 12.5px; color: rgba(0,0,0,0.65); line-height: 1.45; }
+#${HOVER_ID} .${NS}-hv-bio { font-size: 12.5px; color: rgba(0,0,0,0.75); line-height: 1.45; }
 `;
 
 // ── Page helpers ──────────────────────────────────────────────────────────────
@@ -159,23 +186,6 @@ function findTopCardSection(): { section: HTMLElement; nameH2: HTMLElement } | n
   return null;
 }
 
-// The affiliation block: the top card's company/education shortcut list (the
-// "Perplexity / Harvard University" block). Match the innermost small controls
-// holding exactly one logo <img> and a short label; the block is their common
-// container. Live-DOM-verified pattern from the demo-video branch (July 2026).
-const RAIL_CONTROL = 'li, button, a, [role="button"]';
-function findAffiliationBlock(section: HTMLElement, titleName: string): HTMLElement | null {
-  const entries = Array.from(section.querySelectorAll<HTMLElement>(RAIL_CONTROL)).filter((el) => {
-    const t = (el.textContent ?? '').trim();
-    if (!t || t.length >= 60 || t === titleName) return false;
-    if (el.querySelectorAll('img').length !== 1) return false;
-    return !Array.from(el.querySelectorAll(RAIL_CONTROL)).some((inner) => inner.querySelector('img'));
-  });
-  if (!entries.length) return null;
-  const last = entries[entries.length - 1];
-  return (last.parentElement as HTMLElement) ?? last;
-}
-
 function scrapeProfile(): { name: string; headline: string; location: string } {
   const ns = findTopCardSection();
   const name = ns?.nameH2.textContent?.trim() || document.title.replace(/\s*\|.*$/, '').trim() || '';
@@ -194,6 +204,10 @@ function scrapeProfile(): { name: string; headline: string; location: string } {
 }
 
 // ── Card rendering ────────────────────────────────────────────────────────────
+
+// Section heading, present in every card state (like LinkedIn's "About").
+const HEAD =
+  `<span class="${NS}-head"><span class="${NS}-mark">${AIRGLOW_ICON}</span>Socials</span>`;
 
 let running = false;
 
@@ -217,24 +231,96 @@ function fmtCount(n: number): string {
   return String(n);
 }
 
-// Row: profile photo (brand logo when enrichment is missing — e.g. entries
-// cached before it existed), platform label, then handle · stat.
+// Row: platform brand icon, platform label, then handle · stat. The person's
+// details (avatar, name, bio) live in the hover mini-card, not the row.
 function accountRow(kind: 'github' | 'x', acct: FoundAccount, entry: SocialsEntry): string {
   const label = kind === 'github' ? 'GitHub' : 'X';
   const logo = kind === 'github' ? GH_LOGO : X_LOGO;
-  const profile = kind === 'github' ? entry.githubProfile : entry.xProfile;
-  const avatar = profile?.avatar
-    ? `<img src="${esc(profile.avatar)}" alt="${label}" class="${kind === 'x' ? `${NS}-avatar-x` : ''}" data-${NS}-fallback="${logo}">`
-    : `<img src="${logo}" alt="${label}">`;
   const stat = kind === 'github'
     ? (entry.githubProfile ? ` · ${fmtCount(entry.githubProfile.repos)} repos` : '')
     : (entry.xProfile ? ` · ${fmtCount(entry.xProfile.followers)} followers` : '');
   return (
     `<a class="${NS}-acct" href="${acct.url}" target="_blank" rel="noopener noreferrer" data-testid="${NS}-${kind}">` +
-    avatar +
+    `<img src="${logo}" alt="${label}">` +
     `<span><span class="${NS}-acct-name">${label}</span><br>` +
     `<span class="${NS}-acct-handle">${esc(acct.handle)}${stat}</span></span></a>`
   );
+}
+
+// ── Hover mini-card ───────────────────────────────────────────────────────────
+// One shared fixed-position element on <body> (the top card is overflow:hidden
+// and would clip anything hanging off the amber card). Shown while the pointer
+// is over an account row or the mini-card itself.
+
+function hoverCardHtml(kind: 'github' | 'x', acct: FoundAccount, entry: SocialsEntry): string {
+  const label = kind === 'github' ? 'GitHub' : 'X';
+  const logo = kind === 'github' ? GH_LOGO : X_LOGO;
+  const profile = kind === 'github' ? entry.githubProfile : entry.xProfile;
+  const avatar = profile?.avatar
+    ? `<img src="${esc(profile.avatar)}" alt="" class="${kind === 'x' ? `${NS}-avatar-x` : ''}" data-${NS}-fallback="${logo}">`
+    : `<img src="${logo}" alt="">`;
+  const stats: string[] = [];
+  if (kind === 'github' && entry.githubProfile) {
+    const p = entry.githubProfile;
+    stats.push(`${fmtCount(p.repos)} repos`);
+    if (typeof p.followers === 'number') stats.push(`${fmtCount(p.followers)} followers`);
+    if (p.company) stats.push(esc(p.company));
+    if (p.location) stats.push(esc(p.location));
+  } else if (kind === 'x' && entry.xProfile) {
+    const p = entry.xProfile;
+    stats.push(`${fmtCount(p.followers)} followers`);
+    if (p.location) stats.push(esc(p.location));
+  }
+  const bio = profile?.bio ? `<span class="${NS}-hv-bio">${esc(profile.bio)}</span>` : '';
+  return (
+    `<a class="${NS}-hv-link" href="${acct.url}" target="_blank" rel="noopener noreferrer">` +
+    `<span class="${NS}-hv-head"><img src="${logo}" alt="">${label}</span>` +
+    `<span class="${NS}-hv-main">${avatar}` +
+    `<span><span class="${NS}-hv-name">${esc(profile?.name || entry.name)}</span><br>` +
+    `<span class="${NS}-hv-handle">${esc(acct.handle)}</span></span></span>` +
+    (stats.length ? `<span class="${NS}-hv-info">${stats.join(' · ')}</span>` : '') +
+    bio +
+    `</a>`
+  );
+}
+
+let hoverHideTimer: number | undefined;
+
+function hideHoverCard() {
+  hoverHideTimer = window.setTimeout(() => document.getElementById(HOVER_ID)?.remove(), 120);
+}
+
+function showHoverCard(row: HTMLElement, html: string) {
+  window.clearTimeout(hoverHideTimer);
+  let hv = document.getElementById(HOVER_ID);
+  if (!hv) {
+    hv = document.createElement('div');
+    hv.id = HOVER_ID;
+    hv.addEventListener('mouseenter', () => window.clearTimeout(hoverHideTimer));
+    hv.addEventListener('mouseleave', hideHoverCard);
+    document.body.appendChild(hv);
+  }
+  hv.innerHTML = html;
+  hv.querySelectorAll<HTMLImageElement>(`img[data-${NS}-fallback]`).forEach((img) => {
+    img.addEventListener('error', () => { img.src = img.dataset[`${NS}Fallback`] ?? img.src; }, { once: true });
+  });
+  // Above the row, horizontally centered on it (below as fallback when the
+  // row is near the viewport top), clamped to the viewport.
+  const r = row.getBoundingClientRect();
+  const { width: w, height: h } = hv.getBoundingClientRect();
+  const left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8));
+  let top = r.top - h - 10;
+  if (top < 8) top = Math.min(r.bottom + 10, window.innerHeight - h - 8);
+  hv.style.left = `${Math.round(left)}px`;
+  hv.style.top = `${Math.round(top)}px`;
+}
+
+function attachHoverCard(card: HTMLElement, kind: 'github' | 'x', entry: SocialsEntry) {
+  const acct = kind === 'github' ? entry.github : entry.x;
+  const row = card.querySelector<HTMLElement>(`[data-testid="${NS}-${kind}"]`);
+  if (!acct || !row) return;
+  row.addEventListener('mouseenter', () => showHoverCard(row, hoverCardHtml(kind, acct, entry)));
+  row.addEventListener('mouseleave', hideHoverCard);
 }
 
 // Personal-site row: the site's favicon (Google's service; falls back to a
@@ -251,8 +337,8 @@ function websiteRow(site: FoundWebsite): string {
 
 function renderButton(card: HTMLElement) {
   card.innerHTML =
-    `<button class="${NS}-btn" data-testid="${NS}-find">` +
-    `<span class="${NS}-mark">${AIRGLOW_ICON}</span>Find socials</button>`;
+    HEAD +
+    `<button class="${NS}-btn" data-testid="${NS}-find">Find socials</button>`;
   card.querySelector(`.${NS}-btn`)?.addEventListener('click', () => void runLookup(card));
 }
 
@@ -263,12 +349,13 @@ function renderButton(card: HTMLElement) {
 // locally. Returns the updaters.
 function renderLoading(card: HTMLElement): { update: (u: Progress) => void; setElapsed: (s: number) => void } {
   card.innerHTML =
+    HEAD +
     `<span class="${NS}-status" data-testid="${NS}-loading"><span class="${NS}-spin"></span>` +
-    `<span class="${NS}-phase">Searching the web…</span></span>` +
+    `<span class="${NS}-phase">Contacting model…</span></span>` +
     `<span class="${NS}-meta" data-testid="${NS}-meta"></span>`;
   const phaseEl = card.querySelector<HTMLElement>(`.${NS}-phase`);
   const metaEl = card.querySelector<HTMLElement>(`.${NS}-meta`);
-  let phase = 'Searching the web…';
+  let phase = 'Contacting model…';
   let latest = '';
   let searches = 0;
   let sources = 0;
@@ -297,6 +384,7 @@ function renderLoading(card: HTMLElement): { update: (u: Progress) => void; setE
 
 function renderError(card: HTMLElement, msg: string) {
   card.innerHTML =
+    HEAD +
     `<span class="${NS}-status" data-testid="${NS}-error">⚠︎ ${msg}</span>` +
     `<button class="${NS}-retry">Retry</button>`;
   card.querySelector(`.${NS}-retry`)?.addEventListener('click', () => void runLookup(card));
@@ -308,16 +396,20 @@ function renderResult(card: HTMLElement, entry: SocialsEntry) {
   if (entry.x) rows.push(accountRow('x', entry.x, entry));
   if (entry.website) rows.push(websiteRow(entry.website));
   const body = rows.length
-    ? rows.join('')
+    ? `<span class="${NS}-rows">${rows.join('')}</span>`
     : `<span class="${NS}-status" data-testid="${NS}-none">No public GitHub or X found</span>`;
+  // The header with the refresh control inline after the "Socials" title.
   card.innerHTML =
-    body +
-    `<button class="${NS}-refresh" title="Re-run lookup" data-testid="${NS}-refresh">↻</button>`;
-  // Remote avatar gone (renamed/deleted account) → brand logo. Inline onerror
-  // would run in the page world and trip LinkedIn's CSP; listeners don't.
+    `<span class="${NS}-head"><span class="${NS}-mark">${AIRGLOW_ICON}</span>Socials` +
+    `<button class="${NS}-refresh" title="Re-run lookup" data-testid="${NS}-refresh">↻</button></span>` +
+    body;
+  // Website favicon that won't load → globe. Inline onerror would run in the
+  // page world and trip LinkedIn's CSP; listeners don't.
   card.querySelectorAll<HTMLImageElement>(`img[data-${NS}-fallback]`).forEach((img) => {
     img.addEventListener('error', () => { img.src = img.dataset[`${NS}Fallback`] ?? img.src; }, { once: true });
   });
+  attachHoverCard(card, 'github', entry);
+  attachHoverCard(card, 'x', entry);
   card.querySelector(`.${NS}-refresh`)?.addEventListener('click', async () => {
     await airglow.storage.delete(cacheKey(entry.slug));
     void runLookup(card);
@@ -384,44 +476,23 @@ async function setupCard() {
     ensureStyle();
     const card = document.createElement('div');
     card.id = CARD_ID;
-    const titleName = document.title.replace(/\s*\|.*$/, '').trim();
-    const block = findAffiliationBlock(ns.section, titleName);
-    // Below the affiliation block when present; end of the top card otherwise.
-    if (block) {
-      block.setAttribute(ANCHOR_ATTR, '');
-      block.appendChild(card);
-      // The card hangs outside the anchor's box and the top card is
-      // overflow:hidden, so it clips the card on two sides: cap the width to
-      // the room left of the section's right padding edge, and grow the
-      // section's bottom padding by however far the card overhangs its bottom
-      // (the card's height changes as it swaps button → pill → result).
-      const basePad = parseFloat(getComputedStyle(ns.section).paddingBottom) || 0;
-      let addedPad = 0;
-      const clamp = () => {
-        const sRect = ns.section.getBoundingClientRect();
-        const room = sRect.right - block.getBoundingClientRect().left - 24;
-        card.style.maxWidth = `${Math.min(300, Math.max(160, Math.round(room)))}px`;
-        const overhang = Math.max(0, Math.ceil(card.getBoundingClientRect().bottom - (sRect.bottom - addedPad)) + 12);
-        if (overhang !== addedPad) {
-          addedPad = overhang;
-          ns.section.style.paddingBottom = overhang ? `${basePad + overhang}px` : '';
-        }
-      };
-      clamp();
-      const ro = new ResizeObserver(() => {
-        if (!card.isConnected) {
-          ro.disconnect();
-          ns.section.style.paddingBottom = '';
-          return;
-        }
-        clamp();
-      });
-      ro.observe(ns.section);
-      ro.observe(card);
-    } else {
-      card.classList.add(`${NS}-inflow`);
-      ns.section.appendChild(card);
+    // Own section in the main column, right below the top card (so above
+    // Sales Navigator / Featured / About). The card stack is the first
+    // ancestor level where the top card has ANY element sibling — every level
+    // below is a sole-child wrapper. Don't look for <section> siblings: on the
+    // obfuscated-class layout the stacked cards are plain <div> wrappers, and
+    // matching structure (sibling <section>) overshoots to the page-columns
+    // level, dropping the card between main column and right rail.
+    let anchor: HTMLElement = ns.section;
+    while (
+      anchor.parentElement &&
+      anchor.parentElement !== document.body &&
+      anchor.parentElement.tagName !== 'MAIN' &&
+      !anchor.nextElementSibling
+    ) {
+      anchor = anchor.parentElement;
     }
+    anchor.insertAdjacentElement('afterend', card);
 
     const cached = (await airglow.storage.get(cacheKey(slug))) as SocialsEntry | undefined;
     if (currentSlug() !== slug || !card.isConnected) return;
