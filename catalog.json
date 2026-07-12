@@ -1,14 +1,34 @@
 {
-  "schema": 1,
+  "schema": 2,
   "apps": [
     {
-      "id": "askme-anything",
-      "name": "Ask Me Anything",
+      "id": "ask-on-page",
+      "name": "Ask on Page",
       "version": "0.1.0",
-      "description": "Highlight text, press Cmd+J, get AI-powered explanations with web search",
+      "description": "Highlight text, press Ctrl+J, get AI-powered explanations with web search",
       "matches": [
         "<all_urls>"
-      ]
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "ask-on-page",
+        "name": "Ask on Page",
+        "version": "0.1.0",
+        "description": "Highlight text, press Ctrl+J, get AI-powered explanations with web search",
+        "defaultEnabled": false,
+        "userscripts": [
+          {
+            "file": "userscripts/global.ts",
+            "matches": [
+              "<all_urls>"
+            ],
+            "runAt": "document_idle"
+          }
+        ],
+        "_hash": "1c29fbf016fe",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
     },
     {
       "id": "cinematic-x",
@@ -18,7 +38,29 @@
       "matches": [
         "*://x.com/*",
         "*://twitter.com/*"
-      ]
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "cinematic-x",
+        "name": "Cinematic View for X",
+        "version": "0.1.0",
+        "description": "Adds a Cinematic View toggle to X (Twitter). Blacks out the left and right side panels and hides the For you / Following / composer header, leaving only the centered timeline of posts. Smoothly animated.",
+        "userscripts": [
+          {
+            "file": "userscripts/cinematic.ts",
+            "matches": [
+              "*://x.com/*",
+              "*://twitter.com/*"
+            ]
+          }
+        ],
+        "entrypoint": {
+          "selector": "#airglow-cine-btn"
+        },
+        "_hash": "62bede4cf73b",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
     },
     {
       "id": "customizable-x",
@@ -28,13 +70,35 @@
       "matches": [
         "*://x.com/*",
         "*://twitter.com/*"
-      ]
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "customizable-x",
+        "name": "Customizable X",
+        "version": "0.2.0",
+        "description": "Reorder X (Twitter) like iPhone apps. Enter Arrange mode and drag the left menu items (Home, Explore, …) and the right sidebar sections (Search, Subscribe, What's happening, Who to follow) into the order you want — it sticks across reloads.",
+        "userscripts": [
+          {
+            "file": "userscripts/x.ts",
+            "matches": [
+              "*://x.com/*",
+              "*://twitter.com/*"
+            ]
+          }
+        ],
+        "entrypoint": {
+          "selector": "#airglow-customizex-btn"
+        },
+        "_hash": "105d2e6c6106",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
     },
     {
-      "id": "focus-hider",
-      "name": "Focus Hider",
-      "version": "0.3.2",
-      "description": "Hides distracting content, enforces time-based access, and messaging focus mode",
+      "id": "focus-mode",
+      "name": "Focus Mode",
+      "version": "0.4.1",
+      "description": "Hides distracting content, enforces time-based access, blocks distracting sites including HLTV and Hacker News, and messaging focus mode",
       "matches": [
         "*://www.youtube.com/*",
         "*://www.instagram.com/*",
@@ -42,45 +106,159 @@
         "*://www.linkedin.com/*",
         "*://mail.google.com/*",
         "*://web.whatsapp.com/*",
-        "*://web.telegram.org/*"
-      ]
+        "*://web.telegram.org/*",
+        "*://*.hltv.org/*",
+        "*://hltv.org/*",
+        "*://news.ycombinator.com/*"
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "focus-mode",
+        "name": "Focus Mode",
+        "version": "0.4.1",
+        "description": "Hides distracting content, enforces time-based access, blocks distracting sites including HLTV and Hacker News, and messaging focus mode",
+        "defaultEnabled": false,
+        "userscripts": [
+          {
+            "file": "userscripts/youtube.ts",
+            "matches": [
+              "*://www.youtube.com/*"
+            ],
+            "runAt": "document_start"
+          },
+          {
+            "file": "userscripts/instagram.ts",
+            "matches": [
+              "*://www.instagram.com/*"
+            ],
+            "runAt": "document_start"
+          },
+          {
+            "file": "userscripts/x.ts",
+            "matches": [
+              "*://x.com/*"
+            ],
+            "runAt": "document_start"
+          },
+          {
+            "file": "userscripts/linkedin.ts",
+            "matches": [
+              "*://www.linkedin.com/*"
+            ],
+            "runAt": "document_start",
+            "allFrames": true
+          },
+          {
+            "file": "userscripts/gmail.ts",
+            "matches": [
+              "*://mail.google.com/*"
+            ],
+            "runAt": "document_end"
+          },
+          {
+            "file": "userscripts/messaging.ts",
+            "matches": [
+              "*://web.whatsapp.com/*",
+              "*://web.telegram.org/*"
+            ]
+          },
+          {
+            "file": "userscripts/blocked-sites.ts",
+            "matches": [
+              "*://*.hltv.org/*",
+              "*://hltv.org/*",
+              "*://news.ycombinator.com/*"
+            ],
+            "runAt": "document_start"
+          }
+        ],
+        "_hash": "a5ba52535946",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
     },
     {
-      "id": "gmail-calendar",
-      "name": "Gmail Calendar",
+      "id": "gmail-calendar-shortcut",
+      "name": "Gmail Calendar Shortcut",
       "version": "0.1.0",
       "description": "Reads email conversations and uses AI to pre-fill Google Calendar events",
       "matches": [
         "*://mail.google.com/*",
         "*://calendar.google.com/*/r/create*"
-      ]
+      ],
+      "requiresHost": true,
+      "manifest": null
     },
     {
-      "id": "howto-helper",
-      "name": "How-To Helper",
-      "version": "0.1.0",
-      "description": "Floating How-To chat that explains how to do things on the current page",
-      "matches": [
-        "<all_urls>"
-      ]
-    },
-    {
-      "id": "linkedin-researcher",
-      "name": "LinkedIn Researcher",
+      "id": "linkedin-background-research",
+      "name": "LinkedIn Background Research",
       "version": "0.1.0",
       "description": "AI-powered research for LinkedIn profiles using web search",
       "matches": [
         "*://www.linkedin.com/*"
-      ]
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "linkedin-background-research",
+        "name": "LinkedIn Background Research",
+        "version": "0.1.0",
+        "description": "AI-powered research for LinkedIn profiles using web search",
+        "defaultEnabled": false,
+        "userscripts": [
+          {
+            "file": "userscripts/linkedin.ts",
+            "matches": [
+              "*://www.linkedin.com/*"
+            ],
+            "runAt": "document_idle"
+          }
+        ],
+        "host_permissions": [
+          "*://www.linkedin.com/*"
+        ],
+        "_hash": "9da4f0a498b2",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
     },
     {
-      "id": "youtube-cutter",
-      "name": "YouTube Cutter",
+      "id": "socials-finder",
+      "name": "Socials Finder",
+      "version": "0.1.0",
+      "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
+      "matches": [
+        "*://www.linkedin.com/*"
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "socials-finder",
+        "name": "Socials Finder",
+        "version": "0.1.0",
+        "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
+        "userscripts": [
+          {
+            "file": "userscripts/linkedin.ts",
+            "matches": [
+              "*://www.linkedin.com/*"
+            ],
+            "runAt": "document_idle"
+          }
+        ],
+        "_hash": "51405c7fd015",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
+    },
+    {
+      "id": "youtube-clip-cutter",
+      "name": "YouTube Clip Cutter",
       "version": "0.1.0",
       "description": "Adds a Cut button under YouTube videos. Pick a start/end range on the timeline and download just that fragment as an MP4 (saved to your Downloads). Requires yt-dlp + ffmpeg.",
       "matches": [
         "*://www.youtube.com/watch*"
-      ]
+      ],
+      "requiresHost": true,
+      "manifest": null
     }
   ]
 }

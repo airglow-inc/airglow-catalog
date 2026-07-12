@@ -1,0 +1,13 @@
+{
+  "id": "socials-finder",
+  "name": "Socials Finder",
+  "version": "0.1.0",
+  "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
+  "userscripts": [
+    {
+      "file": "userscripts/linkedin.ts",
+      "matches": ["*://www.linkedin.com/*"],
+      "runAt": "document_idle"
+    }
+  ]
+}

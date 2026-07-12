@@ -1,0 +1,61 @@
+{
+  "id": "focus-mode",
+  "name": "Focus Mode",
+  "version": "0.4.1",
+  "description": "Hides distracting content, enforces time-based access, blocks distracting sites including HLTV and Hacker News, and messaging focus mode",
+  "defaultEnabled": false,
+  "userscripts": [
+    {
+      "file": "userscripts/youtube.ts",
+      "matches": [
+        "*://www.youtube.com/*"
+      ],
+      "runAt": "document_start"
+    },
+    {
+      "file": "userscripts/instagram.ts",
+      "matches": [
+        "*://www.instagram.com/*"
+      ],
+      "runAt": "document_start"
+    },
+    {
+      "file": "userscripts/x.ts",
+      "matches": [
+        "*://x.com/*"
+      ],
+      "runAt": "document_start"
+    },
+    {
+      "file": "userscripts/linkedin.ts",
+      "matches": [
+        "*://www.linkedin.com/*"
+      ],
+      "runAt": "document_start",
+      "allFrames": true
+    },
+    {
+      "file": "userscripts/gmail.ts",
+      "matches": [
+        "*://mail.google.com/*"
+      ],
+      "runAt": "document_end"
+    },
+    {
+      "file": "userscripts/messaging.ts",
+      "matches": [
+        "*://web.whatsapp.com/*",
+        "*://web.telegram.org/*"
+      ]
+    },
+    {
+      "file": "userscripts/blocked-sites.ts",
+      "matches": [
+        "*://*.hltv.org/*",
+        "*://hltv.org/*",
+        "*://news.ycombinator.com/*"
+      ],
+      "runAt": "document_start"
+    }
+  ]
+}

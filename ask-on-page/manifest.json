@@ -1,0 +1,16 @@
+{
+  "id": "ask-on-page",
+  "name": "Ask on Page",
+  "version": "0.1.0",
+  "description": "Highlight text, press Ctrl+J, get AI-powered explanations with web search",
+  "defaultEnabled": false,
+  "userscripts": [
+    {
+      "file": "userscripts/global.ts",
+      "matches": [
+        "<all_urls>"
+      ],
+      "runAt": "document_idle"
+    }
+  ]
+}

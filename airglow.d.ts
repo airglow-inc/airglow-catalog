@@ -1,5 +1,5 @@
 /** Airglow SDK - available globally in userscripts, UI, and startup code. */
-type AirglowSdkVersion = '0.1.0-beta.1';
+type AirglowSdkVersion = '0.1.0-beta.2';
 
 interface AirglowError extends Error {
   name: 'AirglowError';
@@ -69,39 +69,78 @@ interface AirglowConnectors {
   execute<T = any>(tool: string, args?: Record<string, any>, opts?: AirglowConnectorOptions): Promise<AirglowExecuteResult<T>>;
 }
 
-/** One block of an Anthropic Messages response (text, tool_use, …). */
-interface AirglowLlmContentBlock {
-  type: string;
-  text?: string;
+/** One choice of a chat-completions response. */
+interface AirglowLlmChoice {
+  index: number;
+  message: {
+    role: 'assistant';
+    content: string | null;
+    tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[];
+    /** Web-plugin citations (url_citation annotations). */
+    annotations?: Record<string, any>[];
+    [key: string]: any;
+  };
+  finish_reason: string | null;
   [key: string]: any;
 }
 
-/** Anthropic Messages API response, returned unchanged by the gateway. */
-interface AirglowLlmMessage {
+/** OpenAI-style chat-completions response, returned unchanged by the gateway. */
+interface AirglowChatCompletion {
   id: string;
-  type: 'message';
-  role: 'assistant';
+  object: 'chat.completion';
+  created: number;
   model: string;
-  content: AirglowLlmContentBlock[];
-  stop_reason: string | null;
-  stop_sequence: string | null;
-  usage: { input_tokens: number; output_tokens: number; [key: string]: any };
+  choices: AirglowLlmChoice[];
+  usage?: { prompt_tokens: number; completion_tokens: number; [key: string]: any };
   [key: string]: any;
 }
 
 /**
- * LLM access through the Airglow gateway — no app-side ANTHROPIC_API_KEY needed.
+ * LLM access through the Airglow gateway — no app-side API key needed.
  * Available in every context, including server functions.
  */
 interface AirglowLlm {
-  anthropic: {
-    /**
-     * Anthropic Messages API. `payload` is the request body, passed through
-     * unchanged. Allowed models: `claude-haiku-4-5`, `claude-sonnet-4-6`
-     * (default), `claude-opus-4-8`.
-     */
-    messages(payload: Record<string, any>): Promise<AirglowLlmMessage>;
-  };
+  /**
+   * OpenAI chat-completions schema, proxied to OpenRouter. `payload` is the
+   * request body, passed through unchanged. Allowed models:
+   * `anthropic/claude-haiku-4.5`, `anthropic/claude-sonnet-5` (default),
+   * `anthropic/claude-opus-4.8`.
+   *
+   *   await airglow.llm.chat({
+   *     model: 'anthropic/claude-sonnet-5', max_tokens: 1024,
+   *     messages: [{ role: 'user', content: 'Hello' }],
+   *   });
+   *
+   * Web search / fetch: add server tools — `tools: [{ type:
+   * 'openrouter:web_search' }, { type: 'openrouter:web_fetch' }]` — and the
+   * model searches (0-N times, choosing its own queries) and fetches URLs as
+   * it sees fit, server-side. Citations arrive in `message.annotations`.
+   * Alternative: `plugins: [{ id: 'web' }]` runs one search up front on every
+   * call (the model has no say). Either form gets a longer timeout.
+   *
+   * Tools: standard OpenAI `tools` / `tool_choice`; the model returns
+   * `message.tool_calls`, you run them and send `role: 'tool'` messages back
+   * on the next call.
+   *
+   * Streaming: pass `{ onEvent }` as a second argument to observe the call's
+   * progress while it runs. `onEvent` receives every raw stream chunk
+   * (`choices[].delta`); the promise still resolves with the same complete
+   * completion as the non-streaming call. Caveat: `tool_calls[].function
+   * .arguments` stream as string fragments — only complete when the chunk
+   * carrying that choice's `finish_reason` arrives.
+   *
+   *   const res = await airglow.llm.chat(payload, {
+   *     onEvent: (c) => appendText(c.choices?.[0]?.delta?.content ?? ''),
+   *   });
+   */
+  chat(payload: Record<string, any> & {
+    model?: string;
+    messages: { role: string; content: any; [key: string]: any }[];
+    plugins?: Record<string, any>[];
+  }, opts?: {
+    /** Called with each raw stream chunk as the call streams. */
+    onEvent?: (chunk: Record<string, any>) => void;
+  }): Promise<AirglowChatCompletion>;
 }
 
 interface Airglow {
@@ -162,6 +201,15 @@ interface Airglow {
   listApps(): Promise<AirglowAppSummary[]>;
 
   captureTab(): Promise<AirglowCaptureResult>;
+
+  /**
+   * Read one cookie (by `name`) from the browser's real cookie jar for `url`'s
+   * domain — including HttpOnly cookies `document.cookie` can't see — or `null`
+   * if absent. Pairs with `fetch({ includeCookies: true })` for authenticated
+   * cross-site reads that need a double-submit header whose value must equal a
+   * cookie (e.g. an X csrf token that must match the `ct0` cookie).
+   */
+  getCookie(url: string, name: string): Promise<string | null>;
 
   platform: {
     allowIframes(domains: string[], initiators?: string[]): Promise<void>;
