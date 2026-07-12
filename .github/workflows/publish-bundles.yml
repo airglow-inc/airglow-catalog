@@ -11,8 +11,20 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: airglow-catalog
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: airglow-catalog
+      # build-catalog reuses the host's bundler (`airglow internal-build`) from
+      # a sibling airglow-sdk checkout, same layout as a dev machine. The host
+      # has no runtime deps, so no install step for it.
+      - uses: actions/checkout@v4
+        with:
+          repository: airglow-inc/airglow-sdk
+          path: airglow-sdk
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       # Installs each app's declared deps and proves manifests + bundles are clean.
