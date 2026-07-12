@@ -1,28 +1,20 @@
 // Focus Mode — fully-blocked sites
 // These sites have no "feed" worth keeping — the whole site is the distraction.
 // So instead of hiding parts, we replace the entire page with a focus overlay at
-// document_start (before the page paints). One script serves every blocked site;
-// the host decides which per-site toggle in focus_mode_sites gates it.
+// document_start (before the page paints). The list of hosts is user-managed in
+// the app UI (focus_mode_blocked_hosts); the script matches every page and
+// early-exits unless the hostname is on the list, then the per-host toggle in
+// focus_mode_sites (key = the host itself) gates it like any other site.
 // @ts-ignore — airglow SDK injected at runtime
 export {};
 
 import { siteGate } from './gate';
 
+// Kept in sync with DEFAULT_BLOCKED_HOSTS in ui/App.tsx — used when the user
+// has never edited the list.
+const DEFAULT_BLOCKED_HOSTS = ['hltv.org', 'news.ycombinator.com'];
+
 ;(function () {
-
-// hostname suffix → { key in focus_mode_sites, display name }
-const SITE_BY_HOST: { suffix: string; key: string; label: string }[] = [
-  { suffix: 'hltv.org', key: 'hltv', label: 'HLTV' },
-  { suffix: 'news.ycombinator.com', key: 'hacker-news', label: 'Hacker News' },
-];
-
-function matchSite() {
-  const host = location.hostname;
-  return SITE_BY_HOST.find((s) => host === s.suffix || host.endsWith('.' + s.suffix)) || null;
-}
-
-const site = matchSite();
-if (!site) return;
 
 const OVERLAY_ID = 'airglow-focus-mode-block';
 const STYLE_ID = 'airglow-focus-mode-block-style';
@@ -157,8 +149,17 @@ function showBlock() {
 }
 
 async function init() {
-  // default: blocked when the app is on
-  if ((await siteGate(site!.key)) === 'on') showBlock();
+  let hosts: string[] = DEFAULT_BLOCKED_HOSTS;
+  try {
+    const stored = await airglow.storage.get<string[]>('focus_mode_blocked_hosts');
+    if (Array.isArray(stored)) hosts = stored;
+  } catch {
+    return;
+  }
+  const host = location.hostname;
+  const match = hosts.find((h) => host === h || host.endsWith('.' + h));
+  if (!match) return;
+  if ((await siteGate(match)) === 'on') showBlock();
 }
 
 init();

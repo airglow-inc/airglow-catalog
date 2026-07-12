@@ -365,11 +365,11 @@ function hideDistractingSections(root: ParentNode = document) {
 
 async function init() {
   const siteEnabled = (await siteGate('linkedin')) === 'on';
-  let fullBlock = true; // default to full-site block
+  let fullBlock = false; // off by default; enabled via the app UI sub-toggle
 
   try {
     const v = await airglow.storage.get(FULL_BLOCK_KEY);
-    if (v === 'false' || v === false) fullBlock = false;
+    if (v === 'true' || v === true) fullBlock = true;
   } catch {}
 
   if (!siteEnabled) return;

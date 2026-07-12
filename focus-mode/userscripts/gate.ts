@@ -3,6 +3,8 @@
 //   focus_mode_snooze — object of temporary pauses (site key → epoch-ms expiry)
 // 'snoozed' pauses blocking for the current page load; an expired pause counts
 // as 'on' again, so blocking resumes on the next navigation/reload.
+// Everything is opt-in: a site blocks only when its flag is explicitly true,
+// so a fresh install (no stored flags) does nothing.
 
 export type GateState = 'on' | 'snoozed' | 'off';
 
@@ -15,11 +17,13 @@ export async function siteGate(key: string): Promise<GateState> {
       airglow.storage.get<Record<string, number>>('focus_mode_snooze'),
     ]);
   } catch {
-    return 'on';
+    return 'off';
   }
   try {
-    if (sitesVal && JSON.parse(sitesVal)[key] === false) return 'off';
-  } catch {}
+    if (!sitesVal || JSON.parse(sitesVal)[key] !== true) return 'off';
+  } catch {
+    return 'off';
+  }
   const until = snoozeVal?.[key];
   if (typeof until === 'number' && Date.now() < until) return 'snoozed';
   return 'on';

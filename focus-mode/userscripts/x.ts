@@ -315,7 +315,7 @@ function renderCard() {
   const PILL_CLASS = 'airglow-video-pill';
   const HIDDEN_ATTR = 'data-airglow-video-hidden';
   const VIDEO_STYLE_ID = 'airglow-focus-mode-x-video';
-  let hideEnabled = true;
+  let hideEnabled = false;
 
   const css = `
 [${HIDDEN_ATTR}] { display: none !important; }
@@ -409,15 +409,12 @@ function renderCard() {
   }
 
   airglow.storage.get('focus_mode_x_stop_autoplay').then((val: any) => {
-    // On by default; only off when explicitly set to false.
-    hideEnabled = val !== false && val !== 'false';
+    // Off by default; only on when explicitly enabled in the app UI.
+    hideEnabled = val === true || val === 'true';
     if (hideEnabled) { ensureStyle(); apply(); } else { unhideAll(); }
     airglow.log?.info?.('[fh-x] hideVideos setting loaded', { val, hideEnabled });
   });
 
-  // Apply immediately for the default-on case before storage resolves.
-  ensureStyle();
-  apply();
 })();
 
 })();

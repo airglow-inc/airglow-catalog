@@ -25,7 +25,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "1c29fbf016fe",
+        "_hash": "4f9a2c0388ab",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -57,7 +57,7 @@
         "entrypoint": {
           "selector": "#airglow-cine-btn"
         },
-        "_hash": "62bede4cf73b",
+        "_hash": "3a62a04e6ff7",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -89,7 +89,7 @@
         "entrypoint": {
           "selector": "#airglow-customizex-btn"
         },
-        "_hash": "105d2e6c6106",
+        "_hash": "5822f82920d0",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -97,26 +97,23 @@
     {
       "id": "focus-mode",
       "name": "Focus Mode",
-      "version": "0.4.1",
-      "description": "Hides distracting content, enforces time-based access, blocks distracting sites including HLTV and Hacker News, and messaging focus mode",
+      "version": "0.4.2",
+      "description": "Hides distracting feeds on YouTube, Instagram, X, LinkedIn, and WhatsApp/Telegram, and fully blocks any sites you add to your block list",
       "matches": [
         "*://www.youtube.com/*",
         "*://www.instagram.com/*",
         "*://x.com/*",
         "*://www.linkedin.com/*",
-        "*://mail.google.com/*",
         "*://web.whatsapp.com/*",
         "*://web.telegram.org/*",
-        "*://*.hltv.org/*",
-        "*://hltv.org/*",
-        "*://news.ycombinator.com/*"
+        "*://*/*"
       ],
       "requiresHost": false,
       "manifest": {
         "id": "focus-mode",
         "name": "Focus Mode",
-        "version": "0.4.1",
-        "description": "Hides distracting content, enforces time-based access, blocks distracting sites including HLTV and Hacker News, and messaging focus mode",
+        "version": "0.4.2",
+        "description": "Hides distracting feeds on YouTube, Instagram, X, LinkedIn, and WhatsApp/Telegram, and fully blocks any sites you add to your block list",
         "defaultEnabled": false,
         "userscripts": [
           {
@@ -149,13 +146,6 @@
             "allFrames": true
           },
           {
-            "file": "userscripts/gmail.ts",
-            "matches": [
-              "*://mail.google.com/*"
-            ],
-            "runAt": "document_end"
-          },
-          {
             "file": "userscripts/messaging.ts",
             "matches": [
               "*://web.whatsapp.com/*",
@@ -165,14 +155,12 @@
           {
             "file": "userscripts/blocked-sites.ts",
             "matches": [
-              "*://*.hltv.org/*",
-              "*://hltv.org/*",
-              "*://news.ycombinator.com/*"
+              "*://*/*"
             ],
             "runAt": "document_start"
           }
         ],
-        "_hash": "a5ba52535946",
+        "_hash": "f4b813ec90c2",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -216,7 +204,7 @@
         "host_permissions": [
           "*://www.linkedin.com/*"
         ],
-        "_hash": "9da4f0a498b2",
+        "_hash": "ab725eec84b2",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -244,7 +232,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "51405c7fd015",
+        "_hash": "24ecdbbea9f8",
         "_hasUi": true,
         "_serverFunctions": []
       }
