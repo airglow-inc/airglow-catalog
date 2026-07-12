@@ -1,0 +1,27 @@
+# Publishes prebuilt app bundles on every push to main, so a plain git push is
+# a complete release: the cloud reads catalog.json straight from GitHub raw,
+# and this uploads the matching dist/ bundles to the public Blob store
+# (apps/<id>/<version>/<key>). Without this, a version bump would 302 to a
+# blob path that doesn't exist yet.
+name: publish-bundles
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Installs each app's declared deps and proves manifests + bundles are clean.
+      - run: bun scripts/validate.mjs
+      - run: bun scripts/build-catalog.mjs
+      # catalog.json must be regenerated before committing — fail loudly if the
+      # committed index drifted from what the apps actually contain, since the
+      # cloud serves the committed file but the upload below serves the rebuilt one.
+      - run: git diff --exit-code catalog.json
+      - run: bun scripts/upload-bundles.mjs
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
