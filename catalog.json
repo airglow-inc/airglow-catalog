@@ -25,71 +25,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "5051bb5a00d0",
-        "_hasUi": true,
-        "_serverFunctions": []
-      }
-    },
-    {
-      "id": "cinematic-x",
-      "name": "Cinematic View for X",
-      "version": "0.1.0",
-      "description": "Adds a Cinematic View toggle to X (Twitter). Blacks out the left and right side panels and hides the For you / Following / composer header, leaving only the centered timeline of posts. Smoothly animated.",
-      "matches": [
-        "*://x.com/*",
-        "*://twitter.com/*"
-      ],
-      "requiresHost": false,
-      "manifest": {
-        "id": "cinematic-x",
-        "name": "Cinematic View for X",
-        "version": "0.1.0",
-        "description": "Adds a Cinematic View toggle to X (Twitter). Blacks out the left and right side panels and hides the For you / Following / composer header, leaving only the centered timeline of posts. Smoothly animated.",
-        "userscripts": [
-          {
-            "file": "userscripts/cinematic.ts",
-            "matches": [
-              "*://x.com/*",
-              "*://twitter.com/*"
-            ]
-          }
-        ],
-        "entrypoint": {
-          "selector": "#airglow-cine-btn"
-        },
-        "_hash": "24118c8513a2",
-        "_hasUi": true,
-        "_serverFunctions": []
-      }
-    },
-    {
-      "id": "customizable-x",
-      "name": "Customizable X",
-      "version": "0.2.0",
-      "description": "Reorder X (Twitter) like iPhone apps. Enter Arrange mode and drag the left menu items (Home, Explore, …) and the right sidebar sections (Search, Subscribe, What's happening, Who to follow) into the order you want — it sticks across reloads.",
-      "matches": [
-        "*://x.com/*",
-        "*://twitter.com/*"
-      ],
-      "requiresHost": false,
-      "manifest": {
-        "id": "customizable-x",
-        "name": "Customizable X",
-        "version": "0.2.0",
-        "description": "Reorder X (Twitter) like iPhone apps. Enter Arrange mode and drag the left menu items (Home, Explore, …) and the right sidebar sections (Search, Subscribe, What's happening, Who to follow) into the order you want — it sticks across reloads.",
-        "userscripts": [
-          {
-            "file": "userscripts/x.ts",
-            "matches": [
-              "*://x.com/*",
-              "*://twitter.com/*"
-            ]
-          }
-        ],
-        "entrypoint": {
-          "selector": "#airglow-customizex-btn"
-        },
-        "_hash": "b3ea146d7c7e",
+        "_hash": "608f30ccd840",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -160,7 +96,7 @@
             "runAt": "document_start"
           }
         ],
-        "_hash": "c4ccfc106d23",
+        "_hash": "ad8067b356f8",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -204,7 +140,7 @@
         "host_permissions": [
           "*://www.linkedin.com/*"
         ],
-        "_hash": "bca12be0643d",
+        "_hash": "927ac9dd2958",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -232,7 +168,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "1ef5dee63da4",
+        "_hash": "a09a64b528da",
         "_hasUi": true,
         "_serverFunctions": []
       }
