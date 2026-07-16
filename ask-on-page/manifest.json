@@ -1,8 +1,8 @@
 {
   "id": "ask-on-page",
-  "name": "Ask on Page",
+  "name": "Ask AI on Any Page",
   "version": "0.1.0",
-  "description": "Highlight text, press Ctrl+J, get AI-powered explanations with web search",
+  "description": "Ask AI about content of any page",
   "defaultEnabled": false,
   "userscripts": [
     {

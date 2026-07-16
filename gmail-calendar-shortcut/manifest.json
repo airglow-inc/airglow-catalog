@@ -1,8 +1,8 @@
 {
   "id": "gmail-calendar-shortcut",
-  "name": "Gmail Calendar Shortcut",
+  "name": "Email to Calendar Event",
   "version": "0.1.0",
-  "description": "Reads email conversations and uses AI to pre-fill Google Calendar events",
+  "description": "Create a calendar event from an email thread",
   "defaultEnabled": false,
   "userscripts": [
     {

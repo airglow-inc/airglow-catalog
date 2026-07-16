@@ -1,8 +1,8 @@
 {
   "id": "socials-finder",
-  "name": "Socials Finder",
+  "name": "Find Socials for LinkedIn",
   "version": "0.1.1",
-  "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
+  "description": "Find social media accounts of a LinkedIn user",
   "userscripts": [
     {
       "file": "userscripts/linkedin.ts",

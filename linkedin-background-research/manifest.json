@@ -2,7 +2,7 @@
   "id": "linkedin-background-research",
   "name": "LinkedIn Background Research",
   "version": "0.1.0",
-  "description": "AI-powered research for LinkedIn profiles using web search",
+  "description": "Research public info about a LinkedIn user",
   "defaultEnabled": false,
   "userscripts": [
     {

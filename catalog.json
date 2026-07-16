@@ -3,18 +3,18 @@
   "apps": [
     {
       "id": "ask-on-page",
-      "name": "Ask on Page",
+      "name": "Ask AI on Any Page",
       "version": "0.1.0",
-      "description": "Highlight text, press Ctrl+J, get AI-powered explanations with web search",
+      "description": "Ask AI about content of any page",
       "matches": [
         "<all_urls>"
       ],
       "requiresHost": false,
       "manifest": {
         "id": "ask-on-page",
-        "name": "Ask on Page",
+        "name": "Ask AI on Any Page",
         "version": "0.1.0",
-        "description": "Highlight text, press Ctrl+J, get AI-powered explanations with web search",
+        "description": "Ask AI about content of any page",
         "defaultEnabled": false,
         "userscripts": [
           {
@@ -34,7 +34,11 @@
       "id": "focus-mode",
       "name": "Focus Mode",
       "version": "0.4.2",
-      "description": "Hides distracting feeds on YouTube, Instagram, X, LinkedIn, and WhatsApp/Telegram, and fully blocks any sites you add to your block list",
+      "description": "Block distracting websites",
+      "media": {
+        "video": "https://raw.githubusercontent.com/airglow-inc/airglow-catalog/main/focus-mode/media/preview.mp4",
+        "thumbnail": "https://raw.githubusercontent.com/airglow-inc/airglow-catalog/main/focus-mode/media/thumbnail.jpg"
+      },
       "matches": [
         "*://www.youtube.com/*",
         "*://www.instagram.com/*",
@@ -49,7 +53,7 @@
         "id": "focus-mode",
         "name": "Focus Mode",
         "version": "0.4.2",
-        "description": "Hides distracting feeds on YouTube, Instagram, X, LinkedIn, and WhatsApp/Telegram, and fully blocks any sites you add to your block list",
+        "description": "Block distracting websites",
         "defaultEnabled": false,
         "userscripts": [
           {
@@ -103,9 +107,9 @@
     },
     {
       "id": "gmail-calendar-shortcut",
-      "name": "Gmail Calendar Shortcut",
+      "name": "Email to Calendar Event",
       "version": "0.1.0",
-      "description": "Reads email conversations and uses AI to pre-fill Google Calendar events",
+      "description": "Create a calendar event from an email thread",
       "matches": [
         "*://mail.google.com/*",
         "*://calendar.google.com/*/r/create*"
@@ -117,7 +121,7 @@
       "id": "linkedin-background-research",
       "name": "LinkedIn Background Research",
       "version": "0.1.0",
-      "description": "AI-powered research for LinkedIn profiles using web search",
+      "description": "Research public info about a LinkedIn user",
       "matches": [
         "*://www.linkedin.com/*"
       ],
@@ -126,7 +130,7 @@
         "id": "linkedin-background-research",
         "name": "LinkedIn Background Research",
         "version": "0.1.0",
-        "description": "AI-powered research for LinkedIn profiles using web search",
+        "description": "Research public info about a LinkedIn user",
         "defaultEnabled": false,
         "userscripts": [
           {
@@ -147,18 +151,22 @@
     },
     {
       "id": "socials-finder",
-      "name": "Socials Finder",
+      "name": "Find Socials for LinkedIn",
       "version": "0.1.1",
-      "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
+      "description": "Find social media accounts of a LinkedIn user",
+      "media": {
+        "video": "https://raw.githubusercontent.com/airglow-inc/airglow-catalog/main/socials-finder/media/preview.mp4",
+        "thumbnail": "https://raw.githubusercontent.com/airglow-inc/airglow-catalog/main/socials-finder/media/thumbnail.jpg"
+      },
       "matches": [
         "*://www.linkedin.com/*"
       ],
       "requiresHost": false,
       "manifest": {
         "id": "socials-finder",
-        "name": "Socials Finder",
+        "name": "Find Socials for LinkedIn",
         "version": "0.1.1",
-        "description": "Find a person's GitHub and X accounts from their LinkedIn profile and show them below the affiliation block",
+        "description": "Find social media accounts of a LinkedIn user",
         "userscripts": [
           {
             "file": "userscripts/linkedin.ts",
@@ -177,7 +185,7 @@
       "id": "youtube-clip-cutter",
       "name": "YouTube Clip Cutter",
       "version": "0.1.0",
-      "description": "Adds a Cut button under YouTube videos. Pick a start/end range on the timeline and download just that fragment as an MP4 (saved to your Downloads). Requires yt-dlp + ffmpeg.",
+      "description": "Cut clips from YouTube videos",
       "matches": [
         "*://www.youtube.com/watch*"
       ],

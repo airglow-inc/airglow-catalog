@@ -2,13 +2,17 @@
   "id": "youtube-clip-cutter",
   "name": "YouTube Clip Cutter",
   "version": "0.1.0",
-  "description": "Adds a Cut button under YouTube videos. Pick a start/end range on the timeline and download just that fragment as an MP4 (saved to your Downloads). Requires yt-dlp + ffmpeg.",
+  "description": "Cut clips from YouTube videos",
   "userscripts": [
     {
       "file": "userscripts/youtube.ts",
-      "matches": ["*://www.youtube.com/watch*"],
+      "matches": [
+        "*://www.youtube.com/watch*"
+      ],
       "runAt": "document_idle"
     }
   ],
-  "entrypoint": { "selector": "#airglow-cut-btn" }
+  "entrypoint": {
+    "selector": "#airglow-cut-btn"
+  }
 }

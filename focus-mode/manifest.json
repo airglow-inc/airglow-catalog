@@ -2,7 +2,7 @@
   "id": "focus-mode",
   "name": "Focus Mode",
   "version": "0.4.2",
-  "description": "Hides distracting feeds on YouTube, Instagram, X, LinkedIn, and WhatsApp/Telegram, and fully blocks any sites you add to your block list",
+  "description": "Block distracting websites",
   "defaultEnabled": false,
   "userscripts": [
     {

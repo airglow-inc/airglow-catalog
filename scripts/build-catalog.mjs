@@ -21,6 +21,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const sdkRoot = join(root, '..', 'airglow-sdk');
 const SKIP = new Set(['shared', 'scripts', 'node_modules', 'hooks', 'dist']);
 
+// Card media (scripts/compress-media.sh output) is served straight from the
+// repo's main branch. Override the base for local testing of unpushed media.
+const MEDIA_BASE = process.env.AIRGLOW_CATALOG_MEDIA_BASE
+  ?? 'https://raw.githubusercontent.com/airglow-inc/airglow-catalog/main';
+
 // Prebuilt ui.html may be served from the Blob store origin, where relative
 // font paths would 404 — point at the fonts uploaded by upload-bundles.mjs.
 const FONTS_BASE = 'https://c0buutvb5hrtz9yo.public.blob.vercel-storage.com/apps/_fonts';
@@ -134,11 +139,17 @@ for (const entry of readdirSync(root, { withFileTypes: true })) {
   )];
   const requiresHost = existsSync(join(dir, 'server')) || (m.serverFunctions?.length > 0);
 
+  // Optional card media, by convention (JSON.stringify drops absent keys).
+  const media = {};
+  if (existsSync(join(dir, 'media', 'preview.mp4'))) media.video = `${MEDIA_BASE}/${entry.name}/media/preview.mp4`;
+  if (existsSync(join(dir, 'media', 'thumbnail.jpg'))) media.thumbnail = `${MEDIA_BASE}/${entry.name}/media/thumbnail.jpg`;
+
   const app = {
     id: m.id ?? entry.name,
     name: m.name ?? entry.name,
     version: m.version ?? '0.0.0',
     description: m.description ?? '',
+    media: Object.keys(media).length ? media : undefined,
     matches,
     requiresHost,
     manifest: null,
