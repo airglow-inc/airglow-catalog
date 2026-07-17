@@ -1,5 +1,6 @@
 {
   "id": "ask-on-page",
+  "visibility": "hidden",
   "name": "Ask AI on Any Page",
   "version": "0.1.0",
   "description": "Ask AI about content of any page",

@@ -1,5 +1,6 @@
 {
   "id": "gmail-calendar-shortcut",
+  "visibility": "hidden",
   "name": "Email to Calendar Event",
   "version": "0.1.0",
   "description": "Create a calendar event from an email thread",

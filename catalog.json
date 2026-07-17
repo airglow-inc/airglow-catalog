@@ -2,35 +2,6 @@
   "schema": 2,
   "apps": [
     {
-      "id": "ask-on-page",
-      "name": "Ask AI on Any Page",
-      "version": "0.1.0",
-      "description": "Ask AI about content of any page",
-      "matches": [
-        "<all_urls>"
-      ],
-      "requiresHost": false,
-      "manifest": {
-        "id": "ask-on-page",
-        "name": "Ask AI on Any Page",
-        "version": "0.1.0",
-        "description": "Ask AI about content of any page",
-        "defaultEnabled": false,
-        "userscripts": [
-          {
-            "file": "userscripts/global.ts",
-            "matches": [
-              "<all_urls>"
-            ],
-            "runAt": "document_idle"
-          }
-        ],
-        "_hash": "608f30ccd840",
-        "_hasUi": true,
-        "_serverFunctions": []
-      }
-    },
-    {
       "id": "focus-mode",
       "name": "Focus Mode",
       "version": "0.4.2",
@@ -106,50 +77,6 @@
       }
     },
     {
-      "id": "gmail-calendar-shortcut",
-      "name": "Email to Calendar Event",
-      "version": "0.1.0",
-      "description": "Create a calendar event from an email thread",
-      "matches": [
-        "*://mail.google.com/*",
-        "*://calendar.google.com/*/r/create*"
-      ],
-      "requiresHost": true,
-      "manifest": null
-    },
-    {
-      "id": "linkedin-background-research",
-      "name": "LinkedIn Background Research",
-      "version": "0.1.0",
-      "description": "Research public info about a LinkedIn user",
-      "matches": [
-        "*://www.linkedin.com/*"
-      ],
-      "requiresHost": false,
-      "manifest": {
-        "id": "linkedin-background-research",
-        "name": "LinkedIn Background Research",
-        "version": "0.1.0",
-        "description": "Research public info about a LinkedIn user",
-        "defaultEnabled": false,
-        "userscripts": [
-          {
-            "file": "userscripts/linkedin.ts",
-            "matches": [
-              "*://www.linkedin.com/*"
-            ],
-            "runAt": "document_idle"
-          }
-        ],
-        "host_permissions": [
-          "*://www.linkedin.com/*"
-        ],
-        "_hash": "927ac9dd2958",
-        "_hasUi": true,
-        "_serverFunctions": []
-      }
-    },
-    {
       "id": "socials-finder",
       "name": "Find Socials for LinkedIn",
       "version": "0.1.1",
@@ -180,17 +107,6 @@
         "_hasUi": true,
         "_serverFunctions": []
       }
-    },
-    {
-      "id": "youtube-clip-cutter",
-      "name": "YouTube Clip Cutter",
-      "version": "0.1.0",
-      "description": "Cut clips from YouTube videos",
-      "matches": [
-        "*://www.youtube.com/watch*"
-      ],
-      "requiresHost": true,
-      "manifest": null
     }
   ]
 }

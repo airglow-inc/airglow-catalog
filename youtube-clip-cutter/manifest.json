@@ -1,5 +1,6 @@
 {
   "id": "youtube-clip-cutter",
+  "visibility": "hidden",
   "name": "YouTube Clip Cutter",
   "version": "0.1.0",
   "description": "Cut clips from YouTube videos",

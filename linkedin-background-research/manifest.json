@@ -1,5 +1,6 @@
 {
   "id": "linkedin-background-research",
+  "visibility": "hidden",
   "name": "LinkedIn Background Research",
   "version": "0.1.0",
   "description": "Research public info about a LinkedIn user",
