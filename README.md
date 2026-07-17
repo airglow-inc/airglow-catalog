@@ -5,22 +5,28 @@ top-level directory with a `manifest.json` is one app; `catalog.json` is the
 machine-readable index the extension's **Catalog** tab and the cloud
 (`/api/catalog`, `/catalog`) read.
 
-Users install an app from the extension (Dashboard → Catalog). The Airglow daemon
-fetches that app's directory into the user's `~/.airglow/apps/<id>` workspace and
-runs `bun install`. Apps are versioned by `manifest.version`; the extension
-surfaces an update when a newer version ships here and flags locally-modified
-installs.
+Users install an app from the extension (Dashboard → Catalog). With the Airglow
+host installed, the daemon fetches the app's directory into the user's
+`~/.airglow/apps/<id>` workspace and runs `bun install`. Without the host, apps
+that don't need one (`requiresHost: false` — no `server/` functions) install as
+prebuilt bundles served from the cloud. Apps are versioned by
+`manifest.version`; the extension surfaces an update when a newer version ships
+here and flags locally-modified installs.
 
 ## Layout
 
 ```
 airglow-catalog/
-├── catalog.json          # generated index (id, name, version, description)
+├── catalog.json          # generated index (id, name, version, media, requiresHost, …)
 ├── shared/               # theme + components, imported via the @shared alias
 ├── airglow.d.ts          # the airglow.* SDK types
+├── dist/                 # prebuilt bundles for host-less installs (generated, gitignored)
 ├── scripts/
-│   ├── build-catalog.mjs # regenerates catalog.json from manifests
-│   └── validate.mjs      # self-sufficiency check (manifest + deps + bundles)
+│   ├── build-catalog.mjs # regenerates catalog.json + prebuilds dist/
+│   ├── validate.mjs      # self-sufficiency check (manifest + deps + bundles)
+│   ├── sync-sdk.mjs      # re-vendors shared/ + airglow.d.ts from a sibling airglow-sdk
+│   ├── upload-bundles.mjs# publishes dist/ to the Blob store the cloud serves
+│   └── compress-media.sh # produces card media (preview video + thumbnail)
 ├── hooks/pre-commit      # runs validate.mjs before every commit
 └── <app-id>/             # one app: manifest.json + ui/ + userscripts/ + server/ + package.json
 ```
@@ -57,10 +63,14 @@ hot-reload, browser bridge):
 bun run src/main.ts daemon --workspace /path/to/airglow-catalog
 ```
 
-Now edit `<app-id>/` and test in the browser (see the app developer guide in the
-workspace `docs/`). Build the app's UI (`ui/App.tsx`), userscripts
+Now edit `<app-id>/` — the daemon picks changes up live (see the app developer
+guide in the workspace `docs/`). Build the app's UI (`ui/App.tsx`), userscripts
 (`userscripts/*.ts`), optional `server/*.ts`, and `manifest.json`. Declare any
 extra dependency with `cd <app-id> && bun add <pkg>`.
+
+Optional card media: put `media/preview.mp4` + `media/thumbnail.jpg` in the app
+directory (produce them with `scripts/compress-media.sh`); they're served raw
+from this repo's `main` branch.
 
 ## Validate
 
@@ -79,13 +89,14 @@ broken app can't be committed.
 ## Publish a new app or version
 
 1. Add or edit the app directory; `npm run validate` until it passes.
-2. `npm run build-index` — regenerates `catalog.json`.
+2. `npm run build-index` — regenerates `catalog.json` and prebuilds `dist/`.
 3. Commit (the pre-commit hook re-validates) and push.
 
-The cloud reads `catalog.json` (raw, on `main`) and serves it at
-`api.airglow.dev/api/catalog`; the extension's Catalog tab picks up the change on
-its next load. Bumping `manifest.version` is what makes installed copies show
-"Update available".
+On push to `main`, CI re-validates, rebuilds, and uploads the prebuilt bundles
+to the Blob store. The cloud reads `catalog.json` (raw, on `main`) and serves it
+at `api.airglow.dev/api/catalog`; the extension's Catalog tab picks up the
+change on its next load. Bumping `manifest.version` is what makes installed
+copies show "Update available".
 
 ## Promote a local app
 
