@@ -144,6 +144,9 @@ for (const entry of readdirSync(root, { withFileTypes: true })) {
   if (existsSync(join(dir, 'media', 'preview.mp4'))) media.video = `${MEDIA_BASE}/${entry.name}/media/preview.mp4`;
   if (existsSync(join(dir, 'media', 'thumbnail.jpg'))) media.thumbnail = `${MEDIA_BASE}/${entry.name}/media/thumbnail.jpg`;
 
+  // SCHEMA SYNC: the cloud relay whitelists these fields — a new field must
+  // also be added in airglow-cloud/lib/catalog/feed.ts (interface + normalize)
+  // and airglow-sdk/extension/entrypoints/dashboard/App.tsx (CatalogApp).
   const app = {
     id: m.id ?? entry.name,
     name: m.name ?? entry.name,

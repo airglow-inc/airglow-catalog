@@ -70,6 +70,29 @@ function checkSdkFreshness() {
 }
 checkSdkFreshness();
 
+// Blob bundle paths are apps/<id>/<version>/… and immutable-by-convention, so
+// changing an app without bumping manifest.version silently overwrites the
+// published bundle: installed users never see "Update available" and
+// cloud-served users get different code under the same version. Catch it at
+// commit time: app files changed vs HEAD (staged or not, media/ excluded —
+// card media is served from main, not versioned) require a version bump.
+// No-ops when the app is new, HEAD's manifest is unreadable, or outside git
+// (CI validates a fresh checkout where diff-vs-HEAD is empty anyway).
+function git(...args) {
+  const r = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+  return r.exitCode === 0 ? r.stdout.toString() : null;
+}
+function unbumpedChange(appDir, version) {
+  const head = git('show', `HEAD:${appDir}/manifest.json`);
+  if (head === null) return null; // new app or no git
+  let headVersion;
+  try { headVersion = JSON.parse(head).version; } catch { return null; }
+  if (headVersion !== version) return null; // bumped — fine
+  const diff = git('diff', 'HEAD', '--name-only', '--', appDir);
+  const changed = (diff ?? '').split('\n').filter((f) => f && !f.includes('/media/'));
+  return changed.length ? changed : null;
+}
+
 // Bundle in a FRESH `bun build` subprocess per file. Bun caches (negative)
 // module resolutions per process, so bundling many entries in one process would
 // poison resolution — the daemon spawns a subprocess per build for the same
@@ -100,6 +123,13 @@ for (const entry of readdirSync(root, { withFileTypes: true })) {
   if (m.id !== entry.name) errors.push(`${entry.name}: manifest id "${m.id}" != directory name`);
   if (!m.name) errors.push(`${entry.name}: manifest missing "name"`);
   if (!m.version) errors.push(`${entry.name}: manifest missing "version"`);
+
+  if (m.version) {
+    const changed = unbumpedChange(entry.name, m.version);
+    if (changed) {
+      errors.push(`${entry.name}: ${changed.length} file(s) changed but version is still ${m.version} — bump manifest.version (published bundles are immutable per version)`);
+    }
+  }
 
   // 2. install declared deps so genuine "missing library" errors are real
   if (existsSync(join(dir, 'package.json'))) {
