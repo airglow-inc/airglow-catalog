@@ -1,0 +1,30 @@
+{
+  "id": "google-search-ad-blocker",
+  "name": "Google Search Ad Blocker",
+  "version": "0.1.0",
+  "description": "Remove sponsored results from Google Search",
+  "website": "Google",
+  "visibility": "public",
+  "userscripts": [
+    {
+      "file": "userscripts/google.ts",
+      "matches": [
+        "*://www.google.com/search*",
+        "*://www.google.co.uk/search*",
+        "*://www.google.de/search*",
+        "*://www.google.fr/search*",
+        "*://www.google.es/search*",
+        "*://www.google.it/search*",
+        "*://www.google.nl/search*",
+        "*://www.google.ru/search*",
+        "*://www.google.ca/search*",
+        "*://www.google.com.au/search*",
+        "*://www.google.co.jp/search*",
+        "*://www.google.com.br/search*",
+        "*://www.google.pl/search*",
+        "*://www.google.com.tr/search*"
+      ],
+      "runAt": "document_start"
+    }
+  ]
+}

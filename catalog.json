@@ -71,7 +71,67 @@
             "runAt": "document_start"
           }
         ],
-        "_hash": "ad8067b356f8",
+        "_hash": "8a9d0b41ee8f",
+        "_hasUi": true,
+        "_serverFunctions": []
+      }
+    },
+    {
+      "id": "google-search-ad-blocker",
+      "name": "Google Search Ad Blocker",
+      "version": "0.1.0",
+      "description": "Remove sponsored results from Google Search",
+      "website": "Google",
+      "media": {
+        "thumbnail": "https://raw.githubusercontent.com/airglow-inc/airglow-catalog/main/google-search-ad-blocker/media/thumbnail.jpg"
+      },
+      "matches": [
+        "*://www.google.com/search*",
+        "*://www.google.co.uk/search*",
+        "*://www.google.de/search*",
+        "*://www.google.fr/search*",
+        "*://www.google.es/search*",
+        "*://www.google.it/search*",
+        "*://www.google.nl/search*",
+        "*://www.google.ru/search*",
+        "*://www.google.ca/search*",
+        "*://www.google.com.au/search*",
+        "*://www.google.co.jp/search*",
+        "*://www.google.com.br/search*",
+        "*://www.google.pl/search*",
+        "*://www.google.com.tr/search*"
+      ],
+      "requiresHost": false,
+      "manifest": {
+        "id": "google-search-ad-blocker",
+        "name": "Google Search Ad Blocker",
+        "version": "0.1.0",
+        "description": "Remove sponsored results from Google Search",
+        "website": "Google",
+        "visibility": "public",
+        "userscripts": [
+          {
+            "file": "userscripts/google.ts",
+            "matches": [
+              "*://www.google.com/search*",
+              "*://www.google.co.uk/search*",
+              "*://www.google.de/search*",
+              "*://www.google.fr/search*",
+              "*://www.google.es/search*",
+              "*://www.google.it/search*",
+              "*://www.google.nl/search*",
+              "*://www.google.ru/search*",
+              "*://www.google.ca/search*",
+              "*://www.google.com.au/search*",
+              "*://www.google.co.jp/search*",
+              "*://www.google.com.br/search*",
+              "*://www.google.pl/search*",
+              "*://www.google.com.tr/search*"
+            ],
+            "runAt": "document_start"
+          }
+        ],
+        "_hash": "1ffebcab033f",
         "_hasUi": true,
         "_serverFunctions": []
       }
@@ -103,7 +163,7 @@
             "runAt": "document_idle"
           }
         ],
-        "_hash": "a09a64b528da",
+        "_hash": "b9dd422cd974",
         "_hasUi": true,
         "_serverFunctions": []
       }

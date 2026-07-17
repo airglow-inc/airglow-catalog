@@ -149,6 +149,7 @@ for (const entry of readdirSync(root, { withFileTypes: true })) {
     name: m.name ?? entry.name,
     version: m.version ?? '0.0.0',
     description: m.description ?? '',
+    website: m.website ?? undefined,
     media: Object.keys(media).length ? media : undefined,
     matches,
     requiresHost,
